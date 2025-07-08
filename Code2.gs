@@ -161,7 +161,7 @@ function getStudentsWithDues(spreadsheetId) {
         return {
           studentId: studentId,
           name: studentInfo.Name,
-          rollNumber: studentInfo.RollNumber,
+          rollNumber: String(studentInfo.RollNumber || ''),
           className: classMap.get(studentInfo.Class) || 'N/A',
           dues: duesByStudent[studentId]
         };

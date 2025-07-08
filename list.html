@@ -150,7 +150,7 @@
             }
 
             let rowsHtml = '';
-            data.sort((a, b) => (a.rollNumber || '').localeCompare(b.rollNumber || ''))
+            data.sort((a, b) => String(a.rollNumber || '').localeCompare(String(b.rollNumber || ''), undefined, { numeric: true }))
                 .forEach(student => {
                     rowsHtml += `
                         <tr>
