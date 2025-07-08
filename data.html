@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spreadsheet Data Viewer</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         body {
             background-color: #f0f4f9;
@@ -54,7 +55,10 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span id="schoolNameHeader">Spreadsheet Data</span>
-                <a href="/index.html" class="btn btn-sm btn-outline-light">Back to Dashboard</a>
+                <div>
+                    <button id="downloadJsonBtn" class="btn btn-sm btn-success me-2" style="display: none;"><i class="fas fa-download me-1"></i> Download JSON</button>
+                    <a href="/index.html" class="btn btn-sm btn-outline-light">Back to Dashboard</a>
+                </div>
             </div>
             <div class="card-body">
                 <div id="loadingIndicator" class="text-center my-5">
@@ -78,15 +82,20 @@
         const loadingIndicator = document.getElementById('loadingIndicator');
         const alertArea = document.getElementById('alertArea');
         const schoolNameHeader = document.getElementById('schoolNameHeader');
+        const downloadJsonBtn = document.getElementById('downloadJsonBtn');
+        let allSheetsData = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchSheetDataAutomatically();
+            downloadJsonBtn.addEventListener('click', downloadAllDataAsJson);
         });
 
         async function fetchSheetDataAutomatically() {
             loadingIndicator.style.display = 'block';
             dataContainer.innerHTML = '';
             alertArea.innerHTML = '';
+            downloadJsonBtn.style.display = 'none';
+            allSheetsData = [];
 
             const spreadsheetId = localStorage.getItem('principalSpreadsheetId') || localStorage.getItem('teacherSpreadsheetId');
             const authToken = localStorage.getItem('authToken');
@@ -132,6 +141,10 @@
                 }
 
                 renderAllSheets(result.data);
+                allSheetsData = result.data; // Store data globally
+                if (allSheetsData && allSheetsData.length > 0) {
+                    downloadJsonBtn.style.display = 'inline-block'; // Show the button
+                }
 
             } catch (error) {
                 console.error('Error fetching sheet data:', error);
@@ -185,6 +198,48 @@
             });
 
             dataContainer.innerHTML = finalHtml;
+        }
+
+        function downloadAllDataAsJson() {
+            if (!allSheetsData || allSheetsData.length === 0) {
+                showAlert('No data available to download.', 'warning');
+                return;
+            }
+
+            const schoolName = localStorage.getItem('schoolName') || 'school_data';
+            const processedData = {};
+
+            allSheetsData.forEach(sheet => {
+                // Skip sheets with no data or only a header row
+                if (!sheet.data || sheet.data.length < 1) {
+                    processedData[sheet.sheetName] = [];
+                    return;
+                }
+                const headers = sheet.data[0];
+                const rows = sheet.data.slice(1);
+
+                // Convert array of arrays to array of objects
+                processedData[sheet.sheetName] = rows.map(row => {
+                    const rowObject = {};
+                    headers.forEach((header, index) => {
+                        if(header) { // Ensure header is not empty/null
+                           rowObject[header] = row[index];
+                        }
+                    });
+                    return rowObject;
+                });
+            });
+
+            const jsonString = JSON.stringify(processedData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${schoolName.replace(/ /g, '_')}_backup_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         function showAlert(message, type = 'info') {
