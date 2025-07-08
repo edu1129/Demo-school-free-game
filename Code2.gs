@@ -7,13 +7,27 @@ function doPost(e) {
     const action = requestData.action;
     const payload = requestData.payload;
 
-    if (action === 'getDuesList') {
-      if (!payload || !payload.spreadsheetId) {
-        throw new Error("Spreadsheet ID is missing in the request payload.");
-      }
-      response = getStudentsWithDues(payload.spreadsheetId);
-    } else {
-      throw new Error(`Unknown action: ${action}`);
+    if (!action) {
+      throw new Error("Action parameter is missing in the request.");
+    }
+
+    // All actions here require a valid token
+    if (!payload || !payload.authToken || !payload.spreadsheetId || !payload.userType) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, message: 'Authentication details are missing.', authError: true }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    const isValidToken = verifyAuthToken(payload.spreadsheetId, payload.authToken, payload.userType, payload.staffId);
+    if (!isValidToken) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, message: 'Invalid or expired token. Please log in again.', authError: true }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    switch (action) {
+      case 'getDuesList':
+        response = getStudentsWithDues(payload.spreadsheetId);
+        break;
+      default:
+        response = { success: false, message: `Unknown action: ${action}` };
     }
 
   } catch (error) {
@@ -25,31 +39,84 @@ function doPost(e) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// --- Utility to get sheet data ---
-function getSheetData(spreadsheetId, sheetName) {
+// --- Utility Functions ---
+
+function getSheet(spreadsheetId, sheetName) {
   try {
     const ss = SpreadsheetApp.openById(spreadsheetId);
-    const sheet = ss.getSheetByName(sheetName);
+    let sheet = ss.getSheetByName(sheetName);
     if (!sheet) {
-      Logger.log(`Sheet "${sheetName}" not found in spreadsheet ID: ${spreadsheetId}.`);
-      return null;
+       Logger.log(`Sheet "${sheetName}" not found in spreadsheet ID: ${spreadsheetId}.`);
     }
-    if (sheet.getLastRow() < 2) {
-        return { headers: [], data: [] }; // Sheet exists but is empty or has only headers
+    return sheet;
+  } catch (e) {
+    Logger.log(`Error getting sheet "${sheetName}" in spreadsheet ID ${spreadsheetId}: ${e}`);
+    throw new Error(`Could not access sheet: ${sheetName}. Error: ${e.message}`);
+  }
+}
+
+function sheetToObjects(sheet) {
+    if (!sheet || sheet.getLastRow() < 2) {
+        return []; // empty or only headers
     }
     const values = sheet.getDataRange().getValues();
-    const headers = values.shift(); // Remove headers and store them
-    const data = values.map(row => {
-      let obj = {};
-      headers.forEach((header, index) => {
-         obj[header] = row[index];
-      });
-      return obj;
+    const headers = values.shift();
+    return values.map(row => {
+        let obj = {};
+        headers.forEach((header, index) => {
+            obj[header] = row[index];
+        });
+        return obj;
     });
-    return { headers, data };
+}
+
+function verifyAuthToken(spreadsheetId, token, userType, staffId) {
+  if (!spreadsheetId || !token || !userType) {
+    Logger.log(`Token verification failed: Missing parameters. SS_ID: ${!!spreadsheetId}, Token: ${!!token}, UserType: ${userType}`);
+    return false;
+  }
+  try {
+    const authSheet = getSheet(spreadsheetId, 'auth');
+    if (!authSheet || authSheet.getLastRow() < 2) {
+      Logger.log(`Token verification failed: 'auth' sheet not found or empty in ${spreadsheetId}.`);
+      return false;
+    }
+
+    const data = authSheet.getDataRange().getValues();
+    const headers = data[0];
+    const userIdIndex = headers.indexOf('UserID');
+    const userTypeIndex = headers.indexOf('UserType');
+    const tokenIndex = headers.indexOf('AuthToken');
+
+    if (userIdIndex === -1 || userTypeIndex === -1 || tokenIndex === -1) {
+      Logger.log(`Token verification failed: 'auth' sheet in ${spreadsheetId} is missing required columns (UserID, UserType, AuthToken).`);
+      return false;
+    }
+
+    const userIdToFind = userType === 'principal' ? 'principal' : staffId;
+    if (!userIdToFind) {
+        Logger.log(`Token verification failed: User ID is missing for userType ${userType}.`);
+        return false;
+    }
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (row[userIdIndex] == userIdToFind && row[userTypeIndex] == userType) {
+        const storedToken = row[tokenIndex];
+        if (storedToken && token === storedToken) {
+          return true;
+        } else {
+          Logger.log(`Token mismatch for user ${userIdToFind} in ${spreadsheetId}. Provided: ${token}, Stored: ${storedToken}`);
+          return false;
+        }
+      }
+    }
+
+    Logger.log(`Token verification failed: User ${userIdToFind} of type ${userType} not found in 'auth' sheet of ${spreadsheetId}.`);
+    return false; // User not found
   } catch (e) {
-    Logger.log(`Error getting data from sheet "${sheetName}" in spreadsheet ID ${spreadsheetId}: ${e}`);
-    throw new Error(`Could not access or read sheet: ${sheetName}.`);
+    Logger.log(`Error during token verification for ${spreadsheetId}: ${e}`);
+    return false;
   }
 }
 
@@ -57,17 +124,17 @@ function getSheetData(spreadsheetId, sheetName) {
 // --- Main Logic Function ---
 function getStudentsWithDues(spreadsheetId) {
   try {
-    const studentsResult = getSheetData(spreadsheetId, 'Students');
-    const feesResult = getSheetData(spreadsheetId, 'StudentsFees');
-    const classesResult = getSheetData(spreadsheetId, 'Classes');
+    const studentsSheet = getSheet(spreadsheetId, 'Students');
+    const feesSheet = getSheet(spreadsheetId, 'StudentsFees');
+    const classesSheet = getSheet(spreadsheetId, 'Classes');
 
-    if (!studentsResult || !feesResult || !classesResult) {
+    if (!studentsSheet || !feesSheet || !classesSheet) {
       throw new Error("Required sheets (Students, StudentsFees, Classes) not found or are inaccessible.");
     }
 
-    const studentsData = studentsResult.data;
-    const feesData = feesResult.data;
-    const classesData = classesResult.data;
+    const studentsData = sheetToObjects(studentsSheet);
+    const feesData = sheetToObjects(feesSheet);
+    const classesData = sheetToObjects(classesSheet);
 
     // Create maps for efficient lookups
     const studentMap = new Map(studentsData.map(s => [s.StudentID, s]));
