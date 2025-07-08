@@ -136,6 +136,15 @@ function getGitHubToken() {
 }
 
 function getGitHubRepoInfo() {
+   const user = PropertiesService.getScriptProperties().getProperty('GITHUB_USER') || 'YOUR_GITHUB_USERNAME';
+   const repo = PropertiesService.getScriptProperties().getProperty('GITHUB_REPO') || 'YOUR_GITHUB_REPOSITORY_NAME';
+   const path = PropertiesService.getScriptProperties().getProperty('GITHUB_IMAGE_PATH') || 'school_images';
+   if (user === 'YOUR_GITHUB_USERNAME' || repo === 'YOUR_GITHUB_REPOSITORY_NAME') {
+       Logger.log("Warning: GitHub user/repo not configured in Script Properties. Using placeholders.");
+   }
+   return { user, repo, path };
+}
+
 function verifyAuthToken(spreadsheetId, token, userType, staffId) {
   if (!spreadsheetId || !token || !userType) {
     Logger.log(`Token verification failed: Missing parameters. SS_ID: ${!!spreadsheetId}, Token: ${!!token}, UserType: ${userType}`);
@@ -307,15 +316,6 @@ function logout(payload) {
     Logger.log(`Error during logout for ${spreadsheetId}: ${e}`);
     return { success: false, message: 'Logout failed on server.' };
   }
-}
-
-   const user = PropertiesService.getScriptProperties().getProperty('GITHUB_USER') || 'YOUR_GITHUB_USERNAME';
-   const repo = PropertiesService.getScriptProperties().getProperty('GITHUB_REPO') || 'YOUR_GITHUB_REPOSITORY_NAME';
-   const path = PropertiesService.getScriptProperties().getProperty('GITHUB_IMAGE_PATH') || 'school_images';
-   if (user === 'YOUR_GITHUB_USERNAME' || repo === 'YOUR_GITHUB_REPOSITORY_NAME') {
-       Logger.log("Warning: GitHub user/repo not configured in Script Properties. Using placeholders.");
-   }
-   return { user, repo, path };
 }
 
 function generateUUID() {

@@ -1,9 +1,17 @@
-Implemented a new decentralized, token-based authentication system for each school.
+नमस्ते,
 
-- On every login, a new unique auth token is generated.
-- This token is stored in a dedicated sheet named 'auth' within each school's personal spreadsheet.
-- The 'auth' sheet centralizes session tokens for both the principal and all teachers of that school.
-- The system automatically creates and configures the 'auth' sheet if it doesn't exist.
-- All protected API requests are now verified against this centralized 'auth' sheet, ensuring robust and school-specific security.
-- The token has no expiration time but is regenerated upon each successful login.
-- An auto-login feature restores sessions by verifying the stored token against the correct school's 'auth' sheet.
+आपको जो 'authtoken verification not defined' वाला सर्वर एरर आ रहा था, वह हमारे सर्वर-साइड कोड में एक बग के कारण था।
+
+**समस्या क्या थी?**
+
+हमारे कोड (`Code.gs` फ़ाइल) में, प्रमाणीकरण (authentication) को संभालने वाला एक महत्वपूर्ण फंक्शन (`verifyAuthToken`) गलती से एक दूसरी फंक्शन के अंदर चला गया था। इस वजह से, जब भी सिस्टम किसी यूजर के ऑथ-टोकन को वेरिफाई करने की कोशिश करता, तो उसे वह फंक्शन मिलता ही नहीं था, और 'not defined' का एरर आ जाता था।
+
+**हमने क्या ठीक किया है?**
+
+हमने इस बग को ठीक कर दिया है। उस फंक्शन को उसकी सही जगह पर रख दिया गया है, जहाँ से पूरा सिस्टम उसे एक्सेस कर सकता है।
+
+इस सुधार के बाद अब आपको यह एरर नहीं दिखना चाहिए और आप बिना किसी समस्या के लॉगिन और अन्य काम कर पाएंगे।
+
+अगर आपको अभी भी कोई समस्या आती है, तो कृपया बताएं।
+
+धन्यवाद!
