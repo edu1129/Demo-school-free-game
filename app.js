@@ -12,6 +12,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const PORT = process.env.PORT || 3000;
 const GAS_URL = process.env.GAS_URL;
 
+const GAS_URL2 = process.env.GAS_URL2;
 // Validate GAS_URL at startup
 if (!GAS_URL || !GAS_URL.startsWith('https://script.google.com/')) {
     console.error("FATAL ERROR: Invalid or missing GAS_URL environment variable.");
@@ -37,6 +38,18 @@ app.get('/view.html', (req, res) => {
     res.sendFile(viewPath, (err) => {
         if (err) {
             console.error("Error sending view.html:", err);
+            if (!res.headersSent) {
+                res.status(404).send("File not found.");
+            }
+        }
+    });
+});
+
+app.get('/list.html', (req, res) => {
+    const listPath = path.join(__dirname, 'list.html');
+    res.sendFile(listPath, (err) => {
+        if (err) {
+            console.error("Error sending list.html:", err);
             if (!res.headersSent) {
                 res.status(404).send("File not found.");
             }
@@ -106,6 +119,61 @@ app.post('/api', async (req, res) => {
     }
 });
 
+
+// New proxy endpoint for the second GAS script
+app.post('/api2', async (req, res) => {
+    if (!GAS_URL2) {
+        console.error("FATAL ERROR: GAS_URL2 environment variable is not set.");
+        return res.status(500).json({ success: false, error: 'Server is not configured for this endpoint.' });
+    }
+
+    const { action, payload } = req.body;
+    
+    if (!action) {
+        return res.status(400).json({ success: false, error: 'Action is required in the request body' });
+    }
+    
+    console.log(`Proxy2 received action: ${action}`);
+    
+    try {
+        const gasResponse = await fetch(GAS_URL2, {
+            method: 'POST',
+            credentials: 'omit',
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8',
+            },
+            body: JSON.stringify({ action, payload })
+        });
+        
+        const responseBodyText = await gasResponse.text();
+        let result;
+        
+        try {
+            result = JSON.parse(responseBodyText);
+        } catch (parseError) {
+            console.error(`Failed to parse GAS JSON response for action "${action}" from GAS_URL2. Status: ${gasResponse.status}. Body:`, responseBodyText.substring(0, 500));
+            if (gasResponse.ok) {
+                return res.status(200).json({ success: true, message: 'Operation successful (non-JSON response)', rawResponse: responseBodyText });
+            } else {
+                return res.status(gasResponse.status).json({
+                    success: false,
+                    error: `Upstream GAS error (Status: ${gasResponse.status}, Non-JSON response)`,
+                    details: responseBodyText.substring(0, 500)
+                });
+            }
+        }
+        
+        res.status(gasResponse.status).json(result);
+        
+    } catch (error) {
+        console.error(`API proxy2 fetch error for action "${action}":`, error);
+        res.status(500).json({
+            success: false,
+            error: `Proxy server internal error during action: ${action}`,
+            details: error.message
+        });
+    }
+});
 
 // Basic health check endpoint
 app.get('/health', (req, res) => {
