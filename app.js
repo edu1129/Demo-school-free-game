@@ -32,6 +32,18 @@ app.get('/', (req, res) => {
     });
 });
 
+app.get('/view.html', (req, res) => {
+    const viewPath = path.join(__dirname, 'view.html');
+    res.sendFile(viewPath, (err) => {
+        if (err) {
+            console.error("Error sending view.html:", err);
+            if (!res.headersSent) {
+                res.status(404).send("File not found.");
+            }
+        }
+    });
+});
+
 // Central API proxy endpoint
 app.post('/api', async (req, res) => {
     // Expecting { action: 'actionName', payload: { ... } } in the request body

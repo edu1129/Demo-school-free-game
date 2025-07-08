@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>वेबसाइट कुकीज़</title>
+    <style>
+        body { font-family: 'Poppins', sans-serif; padding: 20px; background-color: #f0f4f9; color: #333; }
+        h1 { color: #1e293b; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08); }
+        pre { background-color: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; white-space: pre-wrap; word-wrap: break-word; }
+        .cookie-item { padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px dashed #cbd5e1; font-size: 0.9rem; }
+        .cookie-item:last-child { border-bottom: none; }
+        .cookie-key { font-weight: bold; color: #4f46e5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>वेबसाइट कुकीज़</h1>
+        <p>इस पेज पर इस वेबसाइट द्वारा आपके ब्राउज़र में स्टोर की गई सभी कुकीज़ दिखाई गई हैं।</p>
+        <div id="cookieDisplay"></div>
+    </div>
+
+    <script>
+        function displayCookies() {
+            const cookieDisplay = document.getElementById('cookieDisplay');
+            const cookies = document.cookie;
+
+            if (cookies) {
+                const cookieArray = cookies.split(';').map(cookie => cookie.trim());
+                let html = '<pre>';
+                cookieArray.forEach(cookie => {
+                    const parts = cookie.split('=');
+                    const key = decodeURIComponent(parts.shift());
+                    const value = decodeURIComponent(parts.join('='));
+                    html += `<div class="cookie-item"><span class="cookie-key">${key}</span> = ${value}</div>`;
+                });
+                html += '</pre>';
+                cookieDisplay.innerHTML = html;
+            } else {
+                cookieDisplay.innerHTML = '<pre>इस साइट के लिए कोई कुकीज़ नहीं मिलीं।</pre>';
+            }
+        }
+
+        window.onload = displayCookies;
+    </script>
+</body>
+</html>
