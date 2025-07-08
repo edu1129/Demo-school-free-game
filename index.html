@@ -787,17 +787,156 @@
         function readFileAsBase64(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = error => reject(error); reader.readAsDataURL(file); }); }
         function formatDate(dateString) { if (!dateString || dateString instanceof Date === false && new Date(dateString).toString() === 'Invalid Date') return 'N/A'; try { const date = dateString instanceof Date ? dateString : new Date(dateString); if (isNaN(date.getTime())) return 'N/A'; return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) { return 'N/A'; } }
         function formatCurrency(amount) { const num = parseFloat(amount); if (isNaN(num)) return 'Rs 0.00'; return `Rs ${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
-        async function callBackendAPI(action, payload = {}) { showLoading(true); const btn = document.querySelector(`button[type="submit"]:not(:disabled), button[data-action="${action}"]:not(:disabled)`); if(btn) btn.classList.add('button-loading'); console.log(`Calling Proxy: /api - Action: ${action}`, payload); try { const response = await fetch('/api', { method: 'POST', cache: 'no-cache', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, payload }) }); showLoading(false); if(btn) btn.classList.remove('button-loading'); let result = {}; try { result = await response.json(); console.log(`Proxy Resp (/${action}):`, result); } catch (jsonError) { const textResponse = await response.text(); console.error(`Failed to parse JSON from Proxy for ${action}. Status: ${response.status}. Body: ${textResponse.substring(0, 500)}`, jsonError); if (response.ok && textResponse) { result = { success: true, message: 'Operation successful (non-JSON response from server)', rawResponse: textResponse }; } else { throw new Error(`Received non-JSON response from server with status ${response.status}. Body: ${textResponse.substring(0,500)}`); } } if (!response.ok) { const eMsg = result.error || result.message || result.details || `Proxy HTTP error ${response.status}`; console.error(`Proxy Error (${action}): Status ${response.status}`, eMsg); showAlert(`Error: ${eMsg}`, 'danger'); return { success: false, message: eMsg, ...result }; } if (result && result.success === false) { console.error(`Backend operation fail (${action}):`, result.message || result.error); showAlert(result.message || result.error || `Operation failed: ${action}`, 'danger'); } else if (result && result.success === true && ['addStudent', 'addStaff', 'addFeeType', 'addStudentFee', 'addSalaryPayment', 'addExpense', 'recordAttendance', 'registerSchool'].includes(action)) { showAlert(result.message || `${action.replace(/([A-Z])/g, ' $1').trim()} successful.`, 'success'); } return result; } catch (error) { showLoading(false); if(btn) btn.classList.remove('button-loading'); console.error(`Client Network/Fetch error (${action}):`, error); showAlert(`Client Network error: ${error.message}`, 'danger'); return { success: false, message: `Client Network error: ${error.message}` }; } }
-        document.addEventListener('DOMContentLoaded', () => { setupEventListeners(); });
+        async function callBackendAPI(action, payload = {}) {
+            showLoading(true);
+            const btn = document.querySelector(`button[type="submit"]:not(:disabled), button[data-action="${action}"]:not(:disabled)`);
+            if(btn) btn.classList.add('button-loading');
+            
+            const publicActions = ['registerSchool', 'principalLogin', 'teacherLogin', 'verifyToken'];
+            let finalPayload = { ...payload };
+
+            if (!publicActions.includes(action)) {
+                finalPayload.authToken = localStorage.getItem('authToken');
+                finalPayload.spreadsheetId = localStorage.getItem('principalSpreadsheetId') || localStorage.getItem('teacherSpreadsheetId');
+                finalPayload.userType = localStorage.getItem('userType');
+                finalPayload.staffId = localStorage.getItem('teacherStaffId'); // Will be null for principal, which is fine
+                if (!finalPayload.authToken) {
+                    showLoading(false);
+                    if(btn) btn.classList.remove('button-loading');
+                    showAlert('You are not logged in. Redirecting to login page.', 'danger');
+                    handleLogout();
+                    return { success: false, message: 'Not logged in' };
+                }
+            }
+
+            console.log(`Calling Proxy: /api - Action: ${action}`, finalPayload);
+            try {
+                const response = await fetch('/api', {
+                    method: 'POST',
+                    cache: 'no-cache',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action, payload: finalPayload })
+                });
+                showLoading(false);
+                if(btn) btn.classList.remove('button-loading');
+                let result = {};
+                try {
+                    result = await response.json();
+                    console.log(`Proxy Resp (/${action}):`, result);
+                } catch (jsonError) {
+                    const textResponse = await response.text();
+                    console.error(`Failed to parse JSON from Proxy for ${action}. Status: ${response.status}. Body: ${textResponse.substring(0, 500)}`, jsonError);
+                    if (response.ok && textResponse) {
+                        result = { success: true, message: 'Operation successful (non-JSON response from server)', rawResponse: textResponse };
+                    } else {
+                        throw new Error(`Received non-JSON response from server with status ${response.status}. Body: ${textResponse.substring(0,500)}`);
+                    }
+                }
+
+                if (result && result.authError === true) {
+                    showAlert(result.message || 'Session expired. Please log in again.', 'warning');
+                    handleLogout();
+                    return result;
+                }
+
+                if (!response.ok) {
+                    const eMsg = result.error || result.message || result.details || `Proxy HTTP error ${response.status}`;
+                    console.error(`Proxy Error (${action}): Status ${response.status}`, eMsg);
+                    showAlert(`Error: ${eMsg}`, 'danger');
+                    return { success: false, message: eMsg, ...result };
+                }
+                if (result && result.success === false) {
+                    console.error(`Backend operation fail (${action}):`, result.message || result.error);
+                    showAlert(result.message || result.error || `Operation failed: ${action}`, 'danger');
+                } else if (result && result.success === true && ['addStudent', 'addStaff', 'addFeeType', 'addStudentFee', 'addSalaryPayment', 'addExpense', 'recordAttendance', 'registerSchool'].includes(action)) {
+                    showAlert(result.message || `${action.replace(/([A-Z])/g, ' $1').trim()} successful.`, 'success');
+                }
+                return result;
+            } catch (error) {
+                showLoading(false);
+                if(btn) btn.classList.remove('button-loading');
+                console.error(`Client Network/Fetch error (${action}):`, error);
+                showAlert(`Client Network error: ${error.message}`, 'danger');
+                return { success: false, message: `Client Network error: ${error.message}` };
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => { checkAutoLogin(); setupEventListeners(); });
         function setupEventListeners() { document.getElementById('registrationForm')?.addEventListener('submit', handleRegistration); document.getElementById('principalLoginForm')?.addEventListener('submit', handlePrincipalLogin); document.getElementById('teacherLoginForm')?.addEventListener('submit', handleTeacherLogin); document.getElementById('addStudentForm')?.addEventListener('submit', handleAddStudent); document.getElementById('addStaffForm')?.addEventListener('submit', handleAddStaff); document.getElementById('addFeeTypeForm')?.addEventListener('submit', handleAddFeeType); document.getElementById('addStudentFeeForm')?.addEventListener('submit', handleAddStudentFee); document.getElementById('addSalaryPaymentForm')?.addEventListener('submit', handleAddSalaryPayment); document.getElementById('addExpenseForm')?.addEventListener('submit', handleAddExpense); document.getElementById('takeAttendanceForm')?.addEventListener('submit', handleTakeAttendanceSubmit); const pR = document.getElementById('passwordReg'), cPR = document.getElementById('confirmPasswordReg'), mE = document.getElementById('passwordMismatchError'); if (cPR && pR) { const cP = () => { if (pR.value && cPR.value && pR.value !== cPR.value) { mE.style.display = 'block'; cPR.setCustomValidity("!"); } else { mE.style.display = 'none'; cPR.setCustomValidity(""); } }; cPR.addEventListener('input', cP); pR.addEventListener('input', cP); } document.getElementById('logoutButton')?.addEventListener('click', handleLogout); document.getElementById('teacherLogoutButton')?.addEventListener('click', handleLogout);
             document.getElementById('sidebarToggleBtn')?.addEventListener('click', () => document.getElementById('principalDashboardView').classList.toggle('sidebar-collapsed'));
             document.getElementById('teacherSidebarToggleBtn')?.addEventListener('click', () => document.getElementById('teacherDashboardView').classList.toggle('sidebar-collapsed')); setupSidebarNavigation('principalSidebar', loadPrincipalTabData); setupSidebarNavigation('principalSidebarOffcanvas', loadPrincipalTabData); setupSidebarNavigation('teacherSidebar', loadTeacherTabData); setupSidebarNavigation('teacherSidebarOffcanvas', loadTeacherTabData); document.getElementById('principalAttendanceClassSelect')?.addEventListener('change', handlePrincipalAttendanceFilter); document.getElementById('attendanceClassSelect')?.addEventListener('change', handleAttendanceClassChange); document.getElementById('selectAllStudentsCheckbox')?.addEventListener('change', handleSelectAllStudents); document.getElementById('viewAttendanceClassSelect')?.addEventListener('change', handleTeacherAttendanceFilter); document.getElementById('viewStudentClassSelect')?.addEventListener('change', handleTeacherStudentFilter); document.getElementById('studentClassFilter')?.addEventListener('change', handlePrincipalStudentFilter); const fTS = document.getElementById('feeTypeSelect'); if (fTS) fTS.addEventListener('change', (e) => { const a = e.target.options[e.target.selectedIndex]?.getAttribute('data-amount'); const i = document.getElementById('feeAmount'); if (i && a) i.value = a; }); document.body.addEventListener('click', function(event) { if (event.target.closest('.view-attendance-details')) { showAttendanceDetailsModal(event); } else if (event.target.closest('.copy-id-btn')) { handleCopyId(event); } else if (event.target.closest('.view-student-profile-btn')) { const studentId = event.target.closest('.view-student-profile-btn').dataset.studentId; showStudentProfile(studentId); } else if (event.target.closest('.view-staff-profile-btn')) { const staffId = event.target.closest('.view-staff-profile-btn').dataset.staffId; showStaffProfile(staffId); } }); }
+        async function checkAutoLogin() {
+            const authToken = localStorage.getItem('authToken');
+            const userType = localStorage.getItem('userType');
+            const spreadsheetId = localStorage.getItem('principalSpreadsheetId') || localStorage.getItem('teacherSpreadsheetId');
+            const staffId = localStorage.getItem('teacherStaffId');
+
+            if (authToken && userType && spreadsheetId) {
+                showLoading(true);
+                const r = await callBackendAPI('verifyToken', { authToken, userType, spreadsheetId, staffId });
+                showLoading(false);
+                if (r && r.success) {
+                    showAlert(`Welcome back, ${r.principalName || r.teacherName}!`, 'success');
+                    if (r.userType === 'principal') {
+                        principalSpreadsheetId = r.spreadsheetId;
+                        schoolName = r.schoolName;
+                        // Re-populate localStorage to ensure it's fresh
+                        localStorage.setItem('principalSpreadsheetId', r.spreadsheetId);
+                        localStorage.setItem('schoolName', r.schoolName);
+                        localStorage.setItem('userType', 'principal');
+                        localStorage.setItem('authToken', r.authToken);
+                        localStorage.setItem('principalName', r.principalName);
+                        document.getElementById('principalSchoolName').textContent = schoolName;
+                        showView('principalDashboardView');
+                    } else if (r.userType === 'teacher') {
+                        teacherSpreadsheetId = r.spreadsheetId;
+                        teacherStaffId = r.staffId;
+                        teacherName = r.teacherName;
+                        schoolName = r.schoolName;
+                        teacherAssignedClasses = r.assignedClasses || [];
+                        localStorage.setItem('teacherSpreadsheetId', r.spreadsheetId);
+                        localStorage.setItem('teacherStaffId', r.staffId);
+                        localStorage.setItem('teacherName', r.teacherName);
+                        localStorage.setItem('schoolName', r.schoolName);
+                        localStorage.setItem('userType', 'teacher');
+                        localStorage.setItem('authToken', r.authToken);
+                        localStorage.setItem('teacherAssignedClasses', JSON.stringify(teacherAssignedClasses));
+                        document.getElementById('teacherNameDisplay').textContent = teacherName;
+                        document.getElementById('teacherSchoolNameDisplay').textContent = schoolName;
+                        showView('teacherDashboardView');
+                    }
+                } else {
+                    // Token is invalid, clear storage and show login page
+                    handleLogout();
+                    showAlert('Your session has expired. Please log in again.', 'warning');
+                }
+            }
+        }
         function setupSidebarNavigation(sidebarId, tabLoadFunction) { const s = document.getElementById(sidebarId); if (s) { s.addEventListener('click', (e) => { const l = e.target.closest('.nav-link'); if (l && l.dataset.view) { e.preventDefault(); const pId = l.dataset.view; document.querySelectorAll(`#principalSidebar .nav-link, #principalSidebarOffcanvas .nav-link, #teacherSidebar .nav-link, #teacherSidebarOffcanvas .nav-link`).forEach(lnk => lnk.classList.remove('active')); document.querySelectorAll(`.nav-link[data-view="${pId}"]`).forEach(el => el.classList.add('active')); activateDashboardPane(pId); tabLoadFunction(pId); const offcanvasEl = document.getElementById(sidebarId); if (offcanvasEl && offcanvasEl.classList.contains('offcanvas')) bootstrap.Offcanvas.getInstance(offcanvasEl)?.hide(); } }); } }
         function activateDashboardPane(paneId) { document.querySelectorAll('.dashboard-pane').forEach(p => p.classList.remove('active', 'animate__animated', 'animate__fadeIn')); const tP = document.getElementById(paneId); if (tP) { tP.classList.add('active', 'animate__animated', 'animate__fadeIn'); } else { console.warn("Pane not found:", paneId); const oP = document.getElementById('principal-dashboard-overview') || document.getElementById('teacher-dashboard-overview'); if(oP) oP.classList.add('active'); } }
         async function handleRegistration(e) { e.preventDefault(); const f = e.target; const sN = f.schoolName.value.trim(), pN = f.principalName.value.trim(), pM = f.principalMobileReg.value.trim(), pG = f.principalGmail.value.trim(), p = f.passwordReg.value, cP = f.confirmPasswordReg.value, sA = f.schoolAddress.value.trim(), w = f.website.value.trim(), sF = f.schoolImage.files[0]; if (p !== cP) { showAlert('Passwords do not match!', 'danger'); return; } if (!sN || !pN || !pM || !pG || !p || !sA) { showAlert('Please fill required fields.', 'warning'); return; } let iI = null; if (sF) { try { iI = { name: sF.name, type: sF.type, data: await readFileAsBase64(sF) }; } catch (err) { showAlert(`Error reading image: ${err.message}`, 'danger'); return; } } const sI = { schoolName: sN, principalName: pN, principalMobile: pM, principalGmail: pG, password: p, schoolAddress: sA, website: w, schoolImage: iI }; const r = await callBackendAPI('registerSchool', sI); if (r && r.success) { f.reset(); bootstrap.Tab.getOrCreateInstance(document.getElementById('pills-principal-login-tab')).show(); } }
-        async function handlePrincipalLogin(e) { e.preventDefault(); const m = document.getElementById('principalMobile').value.trim(), p = document.getElementById('principalPassword').value; if (!m || !p) { showAlert('Enter mobile & password.', 'warning'); return; } const r = await callBackendAPI('principalLogin', { mobile: m, password: p }); if (r && r.success) { principalSpreadsheetId = r.spreadsheetId; schoolName = r.schoolName; localStorage.setItem('principalSpreadsheetId', principalSpreadsheetId); localStorage.setItem('schoolName', schoolName); localStorage.setItem('userType', 'principal'); document.getElementById('principalSchoolName').textContent = schoolName; showView('principalDashboardView'); } }
-        async function handleTeacherLogin(e) { e.preventDefault(); const sG = document.getElementById('teacherSchoolGmail').value.trim(), sId = document.getElementById('teacherStaffId').value.trim(), p = document.getElementById('teacherPassword').value; if (!sG || !sId || !p) { showAlert('Fill all fields.', 'warning'); return; } const r = await callBackendAPI('teacherLogin', { schoolGmail: sG, staffId: sId, password: p }); if (r && r.success) { teacherSpreadsheetId = r.spreadsheetId; teacherStaffId = r.staffId; teacherName = r.teacherName; schoolName = r.schoolName; teacherAssignedClasses = r.assignedClasses || []; localStorage.setItem('teacherSpreadsheetId', teacherSpreadsheetId); localStorage.setItem('teacherStaffId', teacherStaffId); localStorage.setItem('teacherName', teacherName); localStorage.setItem('schoolName', schoolName); localStorage.setItem('userType', 'teacher'); localStorage.setItem('teacherAssignedClasses', JSON.stringify(teacherAssignedClasses)); document.getElementById('teacherNameDisplay').textContent = teacherName; document.getElementById('teacherSchoolNameDisplay').textContent = schoolName; showView('teacherDashboardView'); } }
-        function handleLogout() { principalSpreadsheetId = null; schoolName = null; teacherSpreadsheetId = null; teacherStaffId = null; teacherName = null; teacherAssignedClasses = []; principalAllStudents = []; principalAllStaff = []; principalAllFeeTypes = []; principalAllClasses = []; principalAllSubjects = []; localStorage.clear(); document.getElementById('principalSchoolName').textContent = ''; document.getElementById('teacherNameDisplay').textContent = ''; document.getElementById('teacherSchoolNameDisplay').textContent = ''; destroyAllCharts(); showView('loginView'); showAlert('Logged out.', 'info'); document.getElementById('principalLoginForm')?.reset(); document.getElementById('teacherLoginForm')?.reset(); document.getElementById('registrationForm')?.reset(); const lT = document.getElementById('pills-principal-login-tab'); if (lT) bootstrap.Tab.getOrCreateInstance(lT).show(); }
+        async function handlePrincipalLogin(e) { e.preventDefault(); const m = document.getElementById('principalMobile').value.trim(), p = document.getElementById('principalPassword').value; if (!m || !p) { showAlert('Enter mobile & password.', 'warning'); return; } const r = await callBackendAPI('principalLogin', { mobile: m, password: p }); if (r && r.success) { principalSpreadsheetId = r.spreadsheetId; schoolName = r.schoolName; localStorage.setItem('principalSpreadsheetId', principalSpreadsheetId); localStorage.setItem('schoolName', schoolName); localStorage.setItem('userType', 'principal'); localStorage.setItem('authToken', r.authToken); localStorage.setItem('principalName', r.principalName); document.getElementById('principalSchoolName').textContent = schoolName; showView('principalDashboardView'); } }
+        async function handleTeacherLogin(e) { e.preventDefault(); const sG = document.getElementById('teacherSchoolGmail').value.trim(), sId = document.getElementById('teacherStaffId').value.trim(), p = document.getElementById('teacherPassword').value; if (!sG || !sId || !p) { showAlert('Fill all fields.', 'warning'); return; } const r = await callBackendAPI('teacherLogin', { schoolGmail: sG, staffId: sId, password: p }); if (r && r.success) { teacherSpreadsheetId = r.spreadsheetId; teacherStaffId = r.staffId; teacherName = r.teacherName; schoolName = r.schoolName; teacherAssignedClasses = r.assignedClasses || []; localStorage.setItem('teacherSpreadsheetId', teacherSpreadsheetId); localStorage.setItem('teacherStaffId', teacherStaffId); localStorage.setItem('teacherName', teacherName); localStorage.setItem('schoolName', schoolName); localStorage.setItem('userType', 'teacher'); localStorage.setItem('authToken', r.authToken); localStorage.setItem('teacherAssignedClasses', JSON.stringify(teacherAssignedClasses)); document.getElementById('teacherNameDisplay').textContent = teacherName; document.getElementById('teacherSchoolNameDisplay').textContent = schoolName; showView('teacherDashboardView'); } }
+        function handleLogout() { const payload = {
+        spreadsheetId: localStorage.getItem('principalSpreadsheetId') || localStorage.getItem('teacherSpreadsheetId'),
+        userType: localStorage.getItem('userType'),
+        staffId: localStorage.getItem('teacherStaffId')
+    };
+    if (payload.spreadsheetId && payload.userType) {
+        callBackendAPI('logout', payload); // Call to clear server token
+    }
+    principalSpreadsheetId = null; schoolName = null; teacherSpreadsheetId = null; teacherStaffId = null; teacherName = null; teacherAssignedClasses = []; principalAllStudents = []; principalAllStaff = []; principalAllFeeTypes = []; principalAllClasses = []; principalAllSubjects = [];
+    localStorage.clear();
+    document.getElementById('principalSchoolName').textContent = '';
+    document.getElementById('teacherNameDisplay').textContent = '';
+    document.getElementById('teacherSchoolNameDisplay').textContent = '';
+    destroyAllCharts();
+    showView('loginView');
+    showAlert('Logged out.', 'info');
+    document.getElementById('principalLoginForm')?.reset();
+    document.getElementById('teacherLoginForm')?.reset();
+    document.getElementById('registrationForm')?.reset();
+    const lT = document.getElementById('pills-principal-login-tab');
+    if (lT) bootstrap.Tab.getOrCreateInstance(lT).show(); }
         async function handleAddStudent(e) { e.preventDefault(); const f = e.target; const sI = { name: f.studentName.value.trim(), rollNumber: f.studentRoll.value.trim(), mobile: f.studentMobile.value.trim(), gmail: f.studentGmail.value.trim(), password: f.studentPassword.value, fatherName: f.studentFatherName.value.trim(), motherName: f.studentMotherName.value.trim(), classId: f.studentClass.value, address: f.studentAddress.value.trim(), aadhar: f.studentAadhar.value.trim(), gender: f.studentGender.value }; if (!sI.name || !sI.rollNumber || !sI.fatherName || !sI.classId || !sI.address || !sI.gender) { showAlert('Fill required fields.', 'warning'); return; } const sPF = f.studentPhoto.files[0]; let iI = null; if (sPF) { try { iI = { name: sPF.name, type: sPF.type, data: await readFileAsBase64(sPF) }; } catch (err) { showAlert(`Photo error: ${err.message}`, 'danger'); return; } } const r = await callBackendAPI('addStudent', { spreadsheetId: principalSpreadsheetId, studentInfo: sI, imageInfo: iI }); if (r && r.success) { f.reset(); bootstrap.Modal.getInstance(f.closest('.modal'))?.hide(); loadPrincipalStudents(); loadPrincipalDashboardOverview(); } }
         async function handleAddStaff(e) { e.preventDefault(); const f = e.target; const sI = { name: f.staffName.value.trim(), mobile: f.staffMobile.value.trim(), gmail: f.staffGmail.value.trim(), password: f.staffPassword.value, salaryAmount: f.staffSalary.value }; if (!sI.name || !sI.mobile || !sI.gmail || !sI.password || !sI.salaryAmount) { showAlert('Fill required fields.', 'warning'); return; } const sPF = f.staffPhoto.files[0]; let iI = null; if (sPF) { try { iI = { name: sPF.name, type: sPF.type, data: await readFileAsBase64(sPF) }; } catch (err) { showAlert(`Photo error: ${err.message}`, 'danger'); return; } } const r = await callBackendAPI('addStaff', { spreadsheetId: principalSpreadsheetId, staffInfo: sI, imageInfo: iI }); if (r && r.success) { f.reset(); bootstrap.Modal.getInstance(f.closest('.modal'))?.hide(); loadPrincipalStaff(); loadPrincipalDashboardOverview(); loadPrincipalSalaryData(); } }
         async function handleAddFeeType(e) { e.preventDefault(); const f = e.target; const fTI = { name: f.feeTypeName.value.trim(), amount: f.feeTypeAmount.value, frequency: f.feeTypeFrequency.value }; if (!fTI.name || !fTI.amount || !fTI.frequency) { showAlert('Fill all fields.', 'warning'); return; } const r = await callBackendAPI('addFeeType', { spreadsheetId: principalSpreadsheetId, feeTypeInfo: fTI }); if (r && r.success) { f.reset(); bootstrap.Modal.getInstance(f.closest('.modal'))?.hide(); loadPrincipalFeeTypes(); } }

@@ -1,1 +1,7 @@
-User apna mobile number password dalega aur login hoga to login verify hone ke baad user ke personal spreadsheets ke "Permissions" name ke sheet ke C2 cell me automatically auth token genrate hoga aur save hoga and user ko bhejega to wah browser me cookies ke rup me save hoga and jab bhi koi request bhejega to uske sath auth token send hoga agar auth token sahi hoga to request ko accept karega nahi to reject kar dega ok and automatically login hoga agar user ke browser ke cookies me token and spreadsheets and other information hoga to usko verify karega agar sahi hoga to automatically accessed granded ho jayega automatically login system banana hai ok jitna jaruri hai utna hi code delete ya modify karna ok,
+Implemented a token-based authentication system.
+
+- On login, a unique auth token is generated and stored in the user's spreadsheet and in the browser's local storage.
+- For principals, the token is in the 'Permissions' sheet.
+- For teachers, the token is stored in their row in the 'Staffs' sheet.
+- All subsequent API requests are authenticated using this token.
+- An auto-login feature has been added to restore sessions when the user revisits the page.
