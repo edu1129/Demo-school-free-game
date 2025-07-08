@@ -1,7 +1,7 @@
-Implemented a centralized, token-based authentication system.
+Implemented a decentralized, token-based authentication system for each school.
 
-- On login, a unique auth token is generated and stored in a central 'auth' spreadsheet and in the browser's local storage.
-- This central spreadsheet holds tokens for all users (principals and teachers).
-- The system automatically creates the 'auth' spreadsheet if it doesn't exist.
-- All subsequent API requests are authenticated using this token against the central sheet.
-- An auto-login feature has been added to restore sessions when the user revisits the page.
+- On login, a unique auth token is generated and stored in a sheet named 'auth' within the specific school's spreadsheet.
+- This 'auth' sheet holds tokens for the principal and all teachers associated with that particular school.
+- The system automatically creates the 'auth' sheet within the school's spreadsheet if it doesn't exist during login or school setup.
+- All subsequent API requests are authenticated using the token against the school's dedicated 'auth' sheet.
+- An auto-login feature has been added to restore sessions by verifying the token against the correct school's spreadsheet.
