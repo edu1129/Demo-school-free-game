@@ -2,56 +2,6 @@
 // --- Global Configuration ---
 const MAIN_SPREADSHEET_ID = '1PjNIMBpDWqU_Vj8SHnCG39mvAqjZ1S51lcLxK5Apzf8';
 const MAIN_SHEET_NAME = 'Schools'; // Assuming the main sheet is named 'Schools'
-const AUTH_SHEET_NAME = 'auth';
-
-function getAuthSheet() {
-  const properties = PropertiesService.getScriptProperties();
-  let spreadsheetId = properties.getProperty('AUTH_SPREADSHEET_ID');
-  let ss;
-
-  if (spreadsheetId) {
-    try {
-      ss = SpreadsheetApp.openById(spreadsheetId);
-    } catch (e) {
-      Logger.log(`Could not open auth spreadsheet with stored ID ${spreadsheetId}. Searching by name. Error: ${e.message}`);
-      spreadsheetId = null; // Reset to trigger search/create
-    }
-  }
-
-  if (!spreadsheetId) {
-    const files = DriveApp.getFilesByName(AUTH_SHEET_NAME);
-    if (files.hasNext()) {
-      ss = SpreadsheetApp.open(files.next());
-      spreadsheetId = ss.getId();
-      properties.setProperty('AUTH_SPREADSHEET_ID', spreadsheetId);
-      Logger.log(`Found auth spreadsheet by name. ID: ${spreadsheetId}`);
-    } else {
-      ss = SpreadsheetApp.create(AUTH_SHEET_NAME);
-      spreadsheetId = ss.getId();
-      properties.setProperty('AUTH_SPREADSHEET_ID', spreadsheetId);
-      const sheet = ss.getSheets()[0];
-      sheet.setName('Tokens');
-      const headers = ['AuthToken', 'UserID', 'UserType', 'SchoolSpreadsheetID', 'Timestamp'];
-      sheet.appendRow(headers);
-      sheet.setFrozenRows(1);
-      Logger.log(`Created new auth spreadsheet. Name: "${AUTH_SHEET_NAME}", ID: ${spreadsheetId}`);
-    }
-  }
-  
-  let sheet = ss.getSheetByName('Tokens');
-  if (!sheet) {
-    sheet = ss.insertSheet('Tokens');
-    const headers = ['AuthToken', 'UserID', 'UserType', 'SchoolSpreadsheetID', 'Timestamp'];
-    sheet.appendRow(headers);
-    sheet.setFrozenRows(1);
-  } else if (sheet.getLastRow() < 1) {
-    const headers = ['AuthToken', 'UserID', 'UserType', 'SchoolSpreadsheetID', 'Timestamp'];
-    sheet.appendRow(headers);
-    sheet.setFrozenRows(1);
-  }
-
-  return sheet;
-}
 
 // --- Web App Entry Points ---
 
@@ -192,54 +142,46 @@ function verifyAuthToken(spreadsheetId, token, userType, staffId) {
     return false;
   }
   try {
-    const authSheet = getAuthSheet();
-    if (!authSheet || authSheet.getLastRow() < 2) {
-      Logger.log('Auth sheet is missing or empty. Verification failed.');
-      return false;
-    }
+    if (userType === 'principal') {
+      const permissionsSheet = getSheet(spreadsheetId, 'Permissions');
+      if (!permissionsSheet) {
+        Logger.log(`Token verification failed for principal: Permissions sheet not found in ${spreadsheetId}.`);
+        return false;
+      }
+      const storedToken = permissionsSheet.getRange('C2').getValue();
+      return token === storedToken;
+    } else if (userType === 'teacher') {
+      if (!staffId) {
+        Logger.log(`Token verification failed for teacher: StaffID is missing.`);
+        return false;
+      }
+      const staffSheet = getSheet(spreadsheetId, 'Staffs');
+      if (!staffSheet || staffSheet.getLastRow() < 2) return false;
 
-    const data = authSheet.getDataRange().getValues();
-    const headers = data[0];
-    const tokenIndex = headers.indexOf('AuthToken');
-    const userIdIndex = headers.indexOf('UserID');
-    const userTypeIndex = headers.indexOf('UserType');
-    const ssIdIndex = headers.indexOf('SchoolSpreadsheetID');
+      const staffData = staffSheet.getDataRange().getValues();
+      const headers = staffData[0];
+      const staffIdIndex = headers.indexOf('StaffID');
+      const tokenIndex = headers.indexOf('AuthToken');
 
-    if ([tokenIndex, userIdIndex, userTypeIndex, ssIdIndex].includes(-1)) {
-      Logger.log('Auth sheet is missing required columns (AuthToken, UserID, UserType, SchoolSpreadsheetID).');
-      return false;
-    }
+      if (staffIdIndex === -1 || tokenIndex === -1) {
+        Logger.log(`Token verification failed for teacher: Required columns (StaffID, AuthToken) not found in Staffs sheet.`);
+        return false;
+      }
 
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      if (row[tokenIndex] === token) {
-        // Found the token, now verify other details.
-        const storedUserType = row[userTypeIndex];
-        const storedSsId = row[ssIdIndex];
-        const storedUserId = row[userIdIndex];
-
-        // The UserID for a teacher is their staffId. For a principal, it's their mobile number.
-        // The `staffId` parameter is only reliably passed for teachers.
-        // We can trust the token if it matches and the userType/ssId also match.
-        if (storedUserType == userType && storedSsId == spreadsheetId) {
-           // Optional: For teachers, we can do an extra check on staffId if it's provided.
-           if (userType === 'teacher' && staffId && storedUserId != staffId) {
-               Logger.log(`Token valid, but staffId mismatch. Token UserID: ${storedUserId}, Payload staffId: ${staffId}`);
-               return false;
-           }
-           Logger.log(`Token verified successfully for userType: ${userType}, userId: ${storedUserId}`);
-           return true;
-        } else {
-           Logger.log(`Token found, but mismatch on details. Token UserType: ${storedUserType}, Payload UserType: ${userType}. Token SS_ID: ${storedSsId}, Payload SS_ID: ${spreadsheetId}`);
-           return false;
+      for (let i = 1; i < staffData.length; i++) {
+        if (staffData[i][staffIdIndex] == staffId) {
+          const storedToken = staffData[i][tokenIndex];
+          return token === storedToken;
         }
       }
+      Logger.log(`Token verification failed for teacher: StaffID ${staffId} not found.`);
+      return false; // Staff member not found
+    } else {
+      Logger.log(`Token verification failed: Unknown userType "${userType}".`);
+      return false;
     }
-
-    Logger.log(`Token verification failed: Token "${token}" not found.`);
-    return false;
   } catch (e) {
-    Logger.log(`Error during token verification: ${e.stack}`);
+    Logger.log(`Error during token verification for ${spreadsheetId}: ${e}`);
     return false;
   }
 }
@@ -324,40 +266,35 @@ function verifyToken(payload) {
 }
 
 function logout(payload) {
-  // The authToken is added to the payload by the client-side callBackendAPI function
-  const { authToken } = payload;
-  if (!authToken) {
-    return { success: false, message: 'Auth token not provided for logout.' };
-  }
+  const { spreadsheetId, userType, staffId } = payload;
   try {
-    const authSheet = getAuthSheet();
-    if (!authSheet || authSheet.getLastRow() < 2) {
-      Logger.log('Auth sheet not found or empty, cannot process logout.');
-      return { success: true, message: 'Logged out successfully (no server session found).' };
-    }
-
-    const data = authSheet.getDataRange().getValues();
-    const headers = data[0];
-    const tokenIndex = headers.indexOf('AuthToken');
-
-    if (tokenIndex === -1) {
-      Logger.log('AuthToken column not found in auth sheet.');
-      return { success: false, message: 'Server configuration error during logout.' };
-    }
-
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][tokenIndex] === authToken) {
-        authSheet.deleteRow(i + 1);
-        Logger.log(`Deleted token entry for ${authToken.substring(0, 8)}... on logout.`);
-        return { success: true, message: 'Logged out successfully.' };
+    if (userType === 'principal') {
+      const permissionsSheet = getSheet(spreadsheetId, 'Permissions');
+      if (permissionsSheet) {
+        permissionsSheet.getRange('C2').clearContent();
+        Logger.log(`Cleared principal token for ${spreadsheetId}`);
+      }
+    } else if (userType === 'teacher') {
+      const staffSheet = getSheet(spreadsheetId, 'Staffs');
+      if (staffSheet) {
+        const staffData = staffSheet.getDataRange().getValues();
+        const headers = staffData[0];
+        const staffIdIndex = headers.indexOf('StaffID');
+        const tokenIndex = headers.indexOf('AuthToken');
+        if (staffIdIndex > -1 && tokenIndex > -1) {
+          for (let i = 1; i < staffData.length; i++) {
+            if (staffData[i][staffIdIndex] == staffId) {
+              staffSheet.getRange(i + 1, tokenIndex + 1).clearContent();
+              Logger.log(`Cleared teacher token for staff ${staffId} in ${spreadsheetId}`);
+              break;
+            }
+          }
+        }
       }
     }
-    
-    Logger.log(`Logout request for a token that was not found: ${authToken.substring(0, 8)}...`);
-    return { success: true, message: 'Logged out successfully (session already ended).' };
-
+    return { success: true, message: 'Logged out successfully.' };
   } catch (e) {
-    Logger.log(`Error during logout: ${e.stack}`);
+    Logger.log(`Error during logout for ${spreadsheetId}: ${e}`);
     return { success: false, message: 'Logout failed on server.' };
   }
 }
@@ -456,11 +393,12 @@ function setupNewSchoolSpreadsheet(spreadsheet, schoolName) {
     results: 'Results',
     attendance: 'Attendance',
     expenses: 'Expenses'
-,  };
+,
+    permissions: 'Permissions'  };
 
   const headers = {
     [sheetNames.students]: ['StudentID', 'RollNumber', 'Name', 'Mobile', 'Gmail', 'Password', 'FatherName', 'MotherName', 'Class', 'Address', 'PhotoURL', 'Aadhar', 'Gender', 'RegistrationDate'],
-    [sheetNames.staff]: ['StaffID', 'Name', 'Mobile', 'Gmail', 'Password', 'JoiningDate', 'PhotoURL', 'SalaryAmount', 'TotalPaid', 'TotalDues', 'IsActive'],
+    [sheetNames.staff]: ['StaffID', 'Name', 'Mobile', 'Gmail', 'Password', 'JoiningDate', 'PhotoURL', 'SalaryAmount', 'TotalPaid', 'TotalDues', 'IsActive', 'AuthToken'],
     [sheetNames.classes]: ['ClassID', 'ClassName', 'Section', 'ClassTeacherStaffID'],
     [sheetNames.subjects]: ['SubjectID', 'SubjectName'],
     [sheetNames.classSubjects]: ['AssignmentID', 'ClassID', 'SubjectID', 'StaffID'],
@@ -610,23 +548,19 @@ function principalLogin(mobile, password) {
         
         const spreadsheetId = data[i][spreadsheetIdIndex];
         const authToken = generateUUID();
-        // Store token in the central auth sheet
-        const authSheet = getAuthSheet();
-        const authData = authSheet.getDataRange().getValues();
-        const authHeaders = authData[0];
-        const userIdIndex = authHeaders.indexOf('UserID');
-        const userTypeIndex = authHeaders.indexOf('UserType');
 
-        // Remove any old tokens for this user
-        for (let j = authData.length - 1; j >= 1; j--) {
-            if (authData[j][userIdIndex] == mobile && authData[j][userTypeIndex] == 'principal') {
-                authSheet.deleteRow(j + 1);
-                Logger.log(`Removed old token for principal ${mobile}.`);
-            }
+        // Store token in the principal's spreadsheet
+        const schoolSS = SpreadsheetApp.openById(spreadsheetId);
+        let permissionsSheet = schoolSS.getSheetByName('Permissions');
+        if (!permissionsSheet) {
+          permissionsSheet = schoolSS.insertSheet('Permissions');
         }
-        
-        // Add new token
-        authSheet.appendRow([authToken, mobile, 'principal', spreadsheetId, new Date()]);
+        permissionsSheet.getRange('A1').setValue('Setting');
+        permissionsSheet.getRange('B1').setValue('Description');
+        permissionsSheet.getRange('C1').setValue('Value');
+        permissionsSheet.getRange('A2').setValue('AuthToken');
+        permissionsSheet.getRange('B2').setValue('Session token for API access. Do not share.');
+        permissionsSheet.getRange('C2').setValue(authToken);
         
         return {
           success: true,
@@ -699,23 +633,13 @@ function teacherLogin(schoolGmail, staffId, password) {
          }
 
          const authToken = generateUUID();
-         // Store token in the central auth sheet
-         const authSheet = getAuthSheet();
-         const authData = authSheet.getDataRange().getValues();
-         const authHeaders = authData[0];
-         const userIdIndex = authHeaders.indexOf('UserID');
-         const userTypeIndex = authHeaders.indexOf('UserType');
-
-         // Remove any old tokens for this user
-         for (let j = authData.length - 1; j >= 1; j--) {
-             if (authData[j][userIdIndex] == staffId && authData[j][userTypeIndex] == 'teacher') {
-                 authSheet.deleteRow(j + 1);
-                 Logger.log(`Removed old token for teacher ${staffId}.`);
-             }
+         const authTokenIndex = staffHeaders.indexOf('AuthToken');
+         if (authTokenIndex === -1) {
+           // This should not happen if setup is correct, but handle it.
+           return { success: false, message: 'AuthToken column not found in Staffs sheet. Please contact admin.' };
          }
-        
-         // Add new token
-         authSheet.appendRow([authToken, staffId, 'teacher', schoolSpreadsheetId, new Date()]);
+         // Update token in the sheet
+         staffSheet.getRange(i + 1, authTokenIndex + 1).setValue(authToken);
 
          const assignedClasses = getAssignedClassesForTeacher(schoolSpreadsheetId, staffId);
 
