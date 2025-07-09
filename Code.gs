@@ -832,10 +832,11 @@ function getAssignedClassesForTeacher(spreadsheetId, staffId) {
   try {
     const classAssignSheet = getSheet(spreadsheetId, 'ClassSubjects');
     const classesSheet = getSheet(spreadsheetId, 'Classes');
+    const subjectsSheet = getSheet(spreadsheetId, 'Subjects'); // NEW
 
     // Check if sheets exist and have headers + data
-    if (!classAssignSheet || classAssignSheet.getLastRow() < 2 || !classesSheet || classesSheet.getLastRow() < 2) {
-      Logger.log(`ClassSubjects or Classes sheet missing/empty for teacher ${staffId} in ${spreadsheetId}`);
+    if (!classAssignSheet || classAssignSheet.getLastRow() < 2 || !classesSheet || classesSheet.getLastRow() < 2 || !subjectsSheet || subjectsSheet.getLastRow() < 2) { // NEW CHECK
+      Logger.log(`ClassSubjects, Classes, or Subjects sheet missing/empty for teacher ${staffId} in ${spreadsheetId}`);
       return []; // Return empty array if data is missing
     }
 
@@ -843,6 +844,7 @@ function getAssignedClassesForTeacher(spreadsheetId, staffId) {
     const assignHeaders = assignments[0];
     const assignStaffIdIndex = assignHeaders.indexOf('StaffID');
     const assignClassIdIndex = assignHeaders.indexOf('ClassID');
+    const assignSubjectIdIndex = assignHeaders.indexOf('SubjectID'); // NEW
 
     const classes = classesSheet.getDataRange().getValues();
     const classHeaders = classes[0];
@@ -850,38 +852,58 @@ function getAssignedClassesForTeacher(spreadsheetId, staffId) {
     const classNameIndex = classHeaders.indexOf('ClassName');
     const sectionIndex = classHeaders.indexOf('Section');
 
-    if (assignStaffIdIndex === -1 || assignClassIdIndex === -1 || classIdIndex === -1 || classNameIndex === -1 || sectionIndex === -1) {
-        Logger.log("Required columns missing in ClassSubjects or Classes sheet for teacher assignment lookup.");
+    const subjects = subjectsSheet.getDataRange().getValues(); // NEW
+    const subjectHeaders = subjects[0];
+    const subjectIdIndex = subjectHeaders.indexOf('SubjectID');
+    const subjectNameIndex = subjectHeaders.indexOf('SubjectName');
+
+    if (assignStaffIdIndex === -1 || assignClassIdIndex === -1 || assignSubjectIdIndex === -1 || classIdIndex === -1 || classNameIndex === -1 || sectionIndex === -1 || subjectIdIndex === -1 || subjectNameIndex === -1) { // NEW CHECKS
+        Logger.log("Required columns missing in ClassSubjects, Classes or Subjects sheet for teacher assignment lookup.");
         return []; // Return empty if essential headers are missing
     }
 
-    // Find all class IDs assigned to this staff ID
-    const assignedClassIds = assignments.slice(1)
-                                     .filter(row => row[assignStaffIdIndex] == staffId)
-                                     .map(row => row[assignClassIdIndex]);
-
-    const uniqueClassIds = [...new Set(assignedClassIds)]; // Get unique class IDs
-
-    // Create a map for quick lookup of class details by ClassID
+    // Create maps for efficient lookups
     const classDetailsMap = classes.slice(1).reduce((map, row) => {
-         // Ensure ClassID exists before adding to map
          if (row[classIdIndex]) {
              map[row[classIdIndex]] = {
-                 classId: row[classIdIndex],
                  className: row[classNameIndex],
-                 section: row[sectionIndex] || '' // Handle potentially empty section
+                 section: row[sectionIndex] || ''
              };
          }
         return map;
     }, {});
 
-    // Map the unique assigned ClassIDs to their details
-    const assignedClassInfo = uniqueClassIds
-                                .map(id => classDetailsMap[id])
-                                .filter(Boolean); // Filter out any undefined results (if ID wasn't in Classes sheet)
+    const subjectDetailsMap = subjects.slice(1).reduce((map, row) => { // NEW MAP
+        if (row[subjectIdIndex]) {
+            map[row[subjectIdIndex]] = row[subjectNameIndex];
+        }
+        return map;
+    }, {});
 
-    Logger.log(`Found ${assignedClassInfo.length} assigned classes for teacher ${staffId}`);
-    return assignedClassInfo; // Returns array of {classId, className, section}
+    // Find all assignments for this staff ID and map them to full details
+    const assignedClassInfo = assignments.slice(1)
+      .filter(row => row[assignStaffIdIndex] == staffId)
+      .map(row => {
+        const classId = row[assignClassIdIndex];
+        const subjectId = row[assignSubjectIdIndex];
+        const classDetails = classDetailsMap[classId];
+        const subjectName = subjectDetailsMap[subjectId];
+
+        if (classDetails && subjectName) {
+          return {
+            classId: classId,
+            className: classDetails.className,
+            section: classDetails.section,
+            subjectId: subjectId,
+            subjectName: subjectName
+          };
+        }
+        return null;
+      })
+      .filter(Boolean); // Filter out nulls if a class or subject was not found
+
+    Logger.log(`Found ${assignedClassInfo.length} assigned class-subjects for teacher ${staffId}`);
+    return assignedClassInfo; // Returns array of {classId, className, section, subjectId, subjectName}
 
   } catch (error) {
     Logger.log(`Error fetching assigned classes for teacher ${staffId} in ${spreadsheetId}: ${error}`);
