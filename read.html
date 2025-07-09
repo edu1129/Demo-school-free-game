@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>प्रोजेक्ट की जानकारी</title>
+    <title>परिनियोजन और क्षमता की जानकारी</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -40,100 +40,90 @@
             font-family: monospace;
             color: #dc3545;
         }
+        .list-group-item {
+            border-color: #e2e8f0;
+        }
+        .alert-warning {
+            background-color: #fffbeb;
+            border-color: #fde68a;
+            color: #b45309;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="mb-4 text-center">प्रोजेक्ट की संरचना और कार्य</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="text-center">सॉफ़्टवेयर परिनियोजन और क्षमता</h1>
+            <a href="/index.html" class="btn btn-outline-secondary">डैशबोर्ड पर वापस जाएं</a>
+        </div>
 
         <div class="card">
             <div class="card-header">
-                Google Apps Script (GAS) फाइलें और उनके URL
+                Hostinger पर तैनाती (Deployment on Hostinger)
             </div>
             <div class="card-body">
-                <p>हमारे सिस्टम में, अलग-अलग कामों के लिए अलग-अलग Google Apps Script फाइलें और उनके URL हैं। सर्वर (<code>app.js</code>) यह तय करता है कि कौन सी रिक्वेस्ट किस URL पर भेजनी है।</p>
-
-                <h5>1. <code>Code.gs</code> (मुख्य स्क्रिप्ट)</h5>
-                <ul>
-                    <li><strong>URL मैपिंग:</strong> <code>GAS_URL</code> (सर्वर पर) -> <code>/api</code> (API रास्ता)</li>
-                    <li><strong>काम:</strong> यह स्क्रिप्ट प्रोजेक्ट के लगभग सभी मुख्य काम करती है, जैसे:
-                        <ul>
-                            <li>स्कूल रजिस्ट्रेशन</li>
-                            <li>प्रिंसिपल और टीचर लॉगिन</li>
-                            <li>छात्र और स्टाफ को जोड़ना/देखना</li>
-                            <li>डैशबोर्ड के लिए डेटा लाना</li>
-                            <li>फीस, सैलरी, और खर्चों का प्रबंधन करना</li>
-                            <li>उपस्थिति (Attendance) रिकॉर्ड करना</li>
-                        </ul>
-                    </li>
-                </ul>
-
-                <h5>2. <code>Code2.gs</code> (बकाया फीस स्क्रिप्ट)</h5>
-                <ul>
-                    <li><strong>URL मैपिंग:</strong> <code>GAS_URL2</code> (सर्वर पर) -> <code>/api2</code> (API रास्ता)</li>
-                    <li><strong>काम:</strong> यह स्क्रिप्ट विशेष रूप से उन छात्रों की सूची लाने के लिए है जिनकी फीस बकाया (Dues) है।</li>
-                </ul>
-
-                <h5>3. <code>Code3.gs</code> (डेटा व्यूअर स्क्रिप्ट)</h5>
-                <ul>
-                    <li><strong>URL मैपिंग:</strong> <code>GAS_URL3</code> (सर्वर पर) -> <code>/api3</code> (API रास्ता)</li>
-                    <li><strong>काम:</strong> यह एक एडमिन टूल है जो किसी स्कूल की स्प्रेडशीट की सभी शीट्स का पूरा डेटा एक साथ दिखाता है।</li>
-                </ul>
-
-                <h5>4. <code>Code4.gs</code> (परिणाम स्क्रिप्ट)</h5>
-                <ul>
-                    <li><strong>URL मैपिंग:</strong> <code>GAS_URL4</code> (सर्वर पर) -> <code>/api4</code> (API रास्ता)</li>
-                    <li><strong>काम:</strong> यह स्क्रिप्ट छात्रों को सार्वजनिक रूप से अपना परिणाम (Result) देखने की अनुमति देती है। इसके लिए लॉगिन की आवश्यकता नहीं है।</li>
-                </ul>
-
-                <h5>5. <code>Code5.gs</code> (पासवर्ड रीसेट स्क्रिप्ट)</h5>
-                <ul>
-                    <li><strong>URL मैपिंग:</strong> <code>GAS_URL5</code> (सर्वर पर) -> <code>/api5</code> (API रास्ता)</li>
-                    <li><strong>काम:</strong> यह स्क्रिप्ट "पासवर्ड भूल गए" (Forgot Password) की प्रक्रिया को संभालती है, जिसमें OTP भेजना और पासवर्ड रीसेट करना शामिल है।</li>
-                </ul>
+                <p><strong>हाँ, आप इस सॉफ़्टवेयर को Hostinger पर तैनात कर सकते हैं।</strong></p>
+                <p>यह एप्लिकेशन एक Node.js सर्वर (<code>app.js</code>) का उपयोग करता है जो आपके फ्रंटएंड (HTML, CSS, JS) को परोसता है और Google Apps Script (GAS) पर चल रहे आपके बैकएंड पर अनुरोधों को अग्रेषित करता है।</p>
+                
+                <h5>तैनाती के लिए कदम:</h5>
+                <ol>
+                    <li>Hostinger पर एक होस्टिंग प्लान चुनें जो <strong>Node.js</strong> को सपोर्ट करता हो (जैसे कि उनके VPS या क्लाउड होस्टिंग प्लान)।</li>
+                    <li>अपने प्रोजेक्ट की सभी फाइलें (<code>.gs</code> फाइलों को छोड़कर) अपने होस्टिंग सर्वर पर अपलोड करें।</li>
+                    <li>सर्वर पर टर्मिनल (SSH) के माध्यम से <code>npm install</code> कमांड चलाकर आवश्यक निर्भरताएँ स्थापित करें।</li>
+                    <li>Hostinger के कंट्रोल पैनल में या <code>.env</code> फ़ाइल का उपयोग करके <strong>Environment Variables</strong> सेट करें। आपको अपनी सभी Google Apps Script वेब ऐप URL के लिए वेरिएबल्स सेट करने होंगे (<code>GAS_URL</code>, <code>GAS_URL2</code>, आदि)।</li>
+                    <li>अपने Node.js एप्लिकेशन को शुरू करने के लिए <code>node app.js</code> या एक प्रोसेस मैनेजर जैसे <code>pm2</code> का उपयोग करें।</li>
+                </ol>
             </div>
         </div>
 
         <div class="card">
             <div class="card-header">
-                HTML फाइलें और उनके काम
+                प्रदर्शन, उपयोगकर्ता क्षमता और प्लान का चुनाव
             </div>
             <div class="card-body">
-                <p>हर HTML फाइल एक खास पेज या फंक्शन का प्रतिनिधित्व करती है।</p>
+                <div class="alert alert-warning" role="alert">
+                    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> महत्वपूर्ण जानकारी!</h4>
+                    <p>आपके सॉफ़्टवेयर की प्रदर्शन क्षमता आपके <strong>Hostinger प्लान</strong> पर नहीं, बल्कि आपके <strong>Google खाते (Gmail या Google Workspace)</strong> पर निर्भर करती है। बैकएंड का सारा काम Google के सर्वर पर होता है।</p>
+                </div>
 
-                <h5>1. <code>index.html</code></h5>
+                <h5>प्रदर्शन की सीमाएँ (Performance Bottlenecks)</h5>
+                <p>Google Apps Script की अपनी सीमाएँ (quotas) हैं जो यह निर्धारित करती हैं कि आपका सॉफ़्टवेयर कितने उपयोगकर्ताओं को संभाल सकता है:</p>
                 <ul>
-                    <li><strong>काम:</strong> यह मुख्य एप्लीकेशन पेज है। यहीं पर उपयोगकर्ता लॉगिन, रजिस्ट्रेशन और लॉगिन के बाद प्रिंसिपल या टीचर का डैशबोर्ड देखते हैं।</li>
-                    <li><strong>API उपयोग:</strong> यह मुख्य रूप से <code>/api</code> (यानी <code>Code.gs</code>) का उपयोग करता है।</li>
-                </ul>
-
-                <h5>2. <code>list.html</code></h5>
-                <ul>
-                    <li><strong>काम:</strong> यह पेज बकाया फीस वाले छात्रों की सूची दिखाता है।</li>
-                    <li><strong>API उपयोग:</strong> यह <code>/api2</code> (यानी <code>Code2.gs</code>) का उपयोग करता है।</li>
-                </ul>
-
-                <h5>3. <code>data.html</code></h5>
-                <ul>
-                    <li><strong>काम:</strong> यह पेज प्रिंसिपल को उनकी पूरी स्कूल स्प्रेडशीट का डेटा देखने की अनुमति देता है।</li>
-                    <li><strong>API उपयोग:</strong> यह <code>/api3</code> (यानी <code>Code3.gs</code>) का उपयोग करता है।</li>
+                    <li><strong>समवर्ती निष्पादन (Concurrent Executions):</strong> एक ही समय में कितने उपयोगकर्ता अनुरोध कर सकते हैं, इसकी एक सीमा है। यदि बहुत से उपयोगकर्ता एक साथ अनुरोध करते हैं, तो कुछ अनुरोध धीमे हो जाएंगे या विफल हो जाएंगे।</li>
+                    <li><strong>कुल निष्पादन समय (Total Execution Time):</strong> आपके Google खाते के प्रकार के आधार पर, स्क्रिप्ट एक दिन में कुल कितने मिनट चल सकती है, इसकी एक सीमा है (जैसे, सामान्य Gmail के लिए 90 मिनट/दिन, Google Workspace के लिए 6 घंटे/दिन)।</li>
+                    <li><strong>Spreadsheet API कॉल्स:</strong> Google Sheets से डेटा पढ़ना और लिखना धीमा होता है। बहुत अधिक उपयोग से "Service invoked too many times" जैसी त्रुटियाँ हो सकती हैं।</li>
                 </ul>
 
-                <h5>4. <code>results.html</code></h5>
-                <ul>
-                    <li><strong>काम:</strong> यह एक सार्वजनिक पेज है जहां कोई भी छात्र अपना स्कूल कोड, कक्षा और रोल नंबर डालकर अपना परिणाम देख सकता है।</li>
-                    <li><strong>API उपयोग:</strong> यह <code>/api4</code> (यानी <code>Code4.gs</code>) का उपयोग करता है।</li>
+                <hr>
+
+                <h5>कौन सा प्लान चुनें?</h5>
+                <p>आपको दो चीजों के लिए प्लान पर विचार करना होगा: Hostinger और Google।</p>
+
+                <h6>1. Hostinger प्लान:</h6>
+                <p>Node.js सर्वर (<code>app.js</code>) बहुत हल्का है। Hostinger का एक <strong>बुनियादी (basic) Node.js सपोर्ट वाला प्लान</strong> पर्याप्त होगा। Hostinger प्लान को अपग्रेड करने से आपके सॉफ़्टवेयर की उपयोगकर्ता क्षमता में कोई खास वृद्धि नहीं होगी।</p>
+
+                <h6>2. Google खाता प्लान (यह सबसे महत्वपूर्ण है):</h6>
+                <ul class="list-group">
+                    <li class="list-group-item">
+                        <strong>सामान्य Gmail खाता (@gmail.com):</strong>
+                        <ul>
+                            <li><strong>उपयोगकर्ता:</strong> बहुत छोटे स्कूल (जैसे 50-100 कुल छात्र) या परीक्षण के लिए उपयुक्त है।</li>
+                            <li><strong>जोखिम:</strong> कम कोटा के कारण, अधिक उपयोग होने पर यह धीमा हो सकता है या काम करना बंद कर सकता है। व्यावसायिक उपयोग के लिए अनुशंसित नहीं है।</li>
+                        </ul>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Google Workspace खाता (अनुशंसित):</strong>
+                        <ul>
+                            <li><strong>उपयोगकर्ता:</strong> किसी भी वास्तविक स्कूल के लिए यह <strong>अत्यधिक अनुशंसित</strong> है। यह 200-500+ कुल उपयोगकर्ताओं को संभाल सकता है (एक साथ गतिविधि के आधार पर)।</li>
+                            <li><strong>लाभ:</strong> यह बहुत अधिक कोटा प्रदान करता है, जिससे आपका सॉफ़्टवेयर अधिक स्थिर और तेज़ चलता है।</li>
+                            <li><strong>कौन सा प्लान:</strong> आप <strong>Google Workspace Business Starter</strong> या <strong>Business Standard</strong> जैसे प्लान से शुरुआत कर सकते हैं।</li>
+                        </ul>
+                    </li>
                 </ul>
 
-                <h5>5. <code>password.html</code></h5>
-                <ul>
-                    <li><strong>काम:</strong> यह पेज प्रिंसिपल को अपना पासवर्ड रीसेट करने की सुविधा देता है।</li>
-                    <li><strong>API उपयोग:</strong> यह <code>/api5</code> (यानी <code>Code5.gs</code>) का उपयोग करता है।</li>
-                </ul>
-                 <h5>6. <code>view.html</code></h5>
-                <ul>
-                    <li><strong>काम:</strong> यह एक साधारण पेज है जो ब्राउज़र में संग्रहीत कुकीज़ (cookies) को देखने के लिए है। यह किसी भी बैकएंड API का उपयोग नहीं करता है।</li>
-                </ul>
+                <h5 class="mt-4">उच्च उपयोग के लिए सुझाव (For High Usage)</h5>
+                <p>यदि आपके स्कूल में सैकड़ों उपयोगकर्ता हैं जो एक ही समय में सॉफ़्टवेयर का उपयोग करेंगे, तो Google Sheets एक अच्छा समाधान नहीं है। इस स्थिति में, आपको प्रदर्शन समस्याओं का सामना करना पड़ेगा।</p>
+                <p>बड़े पैमाने पर उपयोग के लिए, आपको बैकएंड को Google Sheets से एक वास्तविक डेटाबेस जैसे <strong>MySQL, PostgreSQL,</strong> या <strong>MongoDB</strong> में माइग्रेट करने पर विचार करना चाहिए।</p>
             </div>
         </div>
     </div>
