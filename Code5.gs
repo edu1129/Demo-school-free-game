@@ -78,10 +78,12 @@ function sendOtp(gmail) {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const timestamp = new Date();
+    // Format the timestamp to ensure HH:MM:SS is stored visibly in the sheet
+    const formattedTimestamp = Utilities.formatDate(timestamp, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
     const principalName = userRowInfo.rowData[principalNameIndex] || 'Principal';
 
     sheet.getRange(userRowInfo.rowIndex, otpColIndex + 1).setValue(otp);
-    sheet.getRange(userRowInfo.rowIndex, timeColIndex + 1).setValue(timestamp);
+    sheet.getRange(userRowInfo.rowIndex, timeColIndex + 1).setValue(formattedTimestamp);
 
     const subject = "Your Password Reset OTP";
     const body = `Dear ${principalName},\n\nYour OTP for resetting your password is: ${otp}\n\nThis OTP is valid for 2 minutes.\n\nIf you did not request this, please ignore this email.\n\nRegards,\nSchool Management System`;
