@@ -51,7 +51,7 @@ function doPost(e) {
         response = principalLogin(payload.mobile, payload.password);
         break;
       case 'teacherLogin':
-        response = teacherLogin(payload.schoolGmail, payload.staffId, payload.password);
+        response = teacherLogin(payload.schoolCode, payload.mobile, payload.password);
         break;
       case 'verifyToken':
         response = verifyToken(payload);
@@ -625,33 +625,33 @@ function principalLogin(mobile, password) {
   }
 }
 
-function teacherLogin(schoolGmail, staffId, password) {
+function teacherLogin(schoolCode, mobile, password) {
   try {
     const mainSheet = getSheet(MAIN_SPREADSHEET_ID, MAIN_SHEET_NAME);
-     if (!mainSheet) return { success: false, message: 'Main configuration sheet not found.' };
+    if (!mainSheet) return { success: false, message: 'Main configuration sheet not found.' };
 
     const mainData = mainSheet.getDataRange().getValues();
     const mainHeaders = mainData[0];
-    const gmailIndex = mainHeaders.indexOf('Gmail');
+    const schoolCodeIndex = mainHeaders.indexOf('SchoolCode');
     const spreadsheetIdIndex = mainHeaders.indexOf('SchoolSpreadsheetID');
     const schoolNameIndex = mainHeaders.indexOf('School Name');
 
-    if (gmailIndex === -1 || spreadsheetIdIndex === -1 || schoolNameIndex === -1) {
-       return { success: false, message: 'Main sheet is missing required columns for teacher login.' };
+    if (schoolCodeIndex === -1 || spreadsheetIdIndex === -1 || schoolNameIndex === -1) {
+      return { success: false, message: 'Main sheet is missing required columns for teacher login (SchoolCode, SchoolSpreadsheetID, School Name).' };
     }
 
     let schoolSpreadsheetId = null;
     let schoolName = null;
     for (let i = 1; i < mainData.length; i++) {
-        if (mainData[i][gmailIndex] == schoolGmail) {
-            schoolSpreadsheetId = mainData[i][spreadsheetIdIndex];
-            schoolName = mainData[i][schoolNameIndex];
-            break;
-        }
+      if (mainData[i][schoolCodeIndex] == schoolCode) {
+        schoolSpreadsheetId = mainData[i][spreadsheetIdIndex];
+        schoolName = mainData[i][schoolNameIndex];
+        break;
+      }
     }
 
     if (!schoolSpreadsheetId) {
-        return { success: false, message: 'School not found with the provided Principal\'s Gmail address.' };
+      return { success: false, message: 'Invalid School Code. School not found.' };
     }
 
     const staffSheet = getSheet(schoolSpreadsheetId, 'Staffs');
@@ -659,68 +659,69 @@ function teacherLogin(schoolGmail, staffId, password) {
 
     const staffData = staffSheet.getDataRange().getValues();
     const staffHeaders = staffData[0];
+    const mobileIndex = staffHeaders.indexOf('Mobile'); // Column C
+    const passwordIndex = staffHeaders.indexOf('Password'); // Column E
     const staffIdIndex = staffHeaders.indexOf('StaffID');
-    const passwordIndex = staffHeaders.indexOf('Password');
     const nameIndex = staffHeaders.indexOf('Name');
     const isActiveIndex = staffHeaders.indexOf('IsActive');
 
-
-    if (staffIdIndex === -1 || passwordIndex === -1 || nameIndex === -1 || isActiveIndex === -1) {
-       return { success: false, message: 'Staffs sheet is missing required columns (StaffID, Password, Name, IsActive).' };
+    if (mobileIndex === -1 || passwordIndex === -1 || staffIdIndex === -1 || nameIndex === -1 || isActiveIndex === -1) {
+      return { success: false, message: 'Staffs sheet is missing required columns (StaffID, Name, Mobile, Password, IsActive).' };
     }
 
     for (let i = 1; i < staffData.length; i++) {
-      if (staffData[i][staffIdIndex] == staffId && staffData[i][passwordIndex] == password) {
-         if (staffData[i][isActiveIndex] !== true && String(staffData[i][isActiveIndex]).toUpperCase() !== 'TRUE') {
-             Logger.log(`Teacher login failed for Staff ID: ${staffId}. Account is inactive.`);
-             return { success: false, message: 'Your account is inactive. Please contact the principal.' };
-         }
-
-         const authToken = generateUUID();
-         
-         // Store token in the school's 'auth' spreadsheet
-         const schoolSS = SpreadsheetApp.openById(schoolSpreadsheetId);
-         const authSheet = getOrCreateSheet(schoolSS, 'auth', ['UserID', 'UserType', 'AuthToken', 'LastLoginTimestamp']);
+      if (staffData[i][mobileIndex] == mobile && staffData[i][passwordIndex] == password) {
+        if (staffData[i][isActiveIndex] !== true && String(staffData[i][isActiveIndex]).toUpperCase() !== 'TRUE') {
+          Logger.log(`Teacher login failed for Mobile: ${mobile}. Account is inactive.`);
+          return { success: false, message: 'Your account is inactive. Please contact the principal.' };
+        }
         
-         const authData = authSheet.getDataRange().getValues();
-         const authHeaders = authData[0];
-         const userIdIndex = authHeaders.indexOf('UserID');
-         const tokenIndex = authHeaders.indexOf('AuthToken');
-         const timestampIndex = authHeaders.indexOf('LastLoginTimestamp');
+        const staffId = staffData[i][staffIdIndex];
+        const authToken = generateUUID();
 
-         let userRow = -1;
-         for (let r = 1; r < authData.length; r++) {
-           if (authData[r][userIdIndex] == staffId) {
-             userRow = r + 1;
-             break;
-           }
-         }
+        // Store token in the school's 'auth' spreadsheet
+        const schoolSS = SpreadsheetApp.openById(schoolSpreadsheetId);
+        const authSheet = getOrCreateSheet(schoolSS, 'auth', ['UserID', 'UserType', 'AuthToken', 'LastLoginTimestamp']);
+        
+        const authData = authSheet.getDataRange().getValues();
+        const authHeaders = authData[0];
+        const userIdIndex = authHeaders.indexOf('UserID');
+        const tokenIndex = authHeaders.indexOf('AuthToken');
+        const timestampIndex = authHeaders.indexOf('LastLoginTimestamp');
 
-         if (userRow !== -1) {
-           authSheet.getRange(userRow, tokenIndex + 1).setValue(authToken);
-           authSheet.getRange(userRow, timestampIndex + 1).setValue(new Date());
-         } else {
-           authSheet.appendRow([staffId, 'teacher', authToken, new Date()]);
-         }
+        let userRow = -1;
+        for (let r = 1; r < authData.length; r++) {
+          if (authData[r][userIdIndex] == staffId) {
+            userRow = r + 1;
+            break;
+          }
+        }
 
-         const assignedClasses = getAssignedClassesForTeacher(schoolSpreadsheetId, staffId);
+        if (userRow !== -1) {
+          authSheet.getRange(userRow, tokenIndex + 1).setValue(authToken);
+          authSheet.getRange(userRow, timestampIndex + 1).setValue(new Date());
+        } else {
+          authSheet.appendRow([staffId, 'teacher', authToken, new Date()]);
+        }
 
-         Logger.log(`Teacher login successful for Staff ID: ${staffId}`);
-         return {
-           success: true,
-           teacherName: staffData[i][nameIndex],
-           staffId: staffData[i][staffIdIndex],
-           schoolName: schoolName,
-           spreadsheetId: schoolSpreadsheetId,
-           assignedClasses: assignedClasses,
-           authToken: authToken,
-           userType: 'teacher'
-         };
+        const assignedClasses = getAssignedClassesForTeacher(schoolSpreadsheetId, staffId);
+
+        Logger.log(`Teacher login successful for Staff ID: ${staffId}`);
+        return {
+          success: true,
+          teacherName: staffData[i][nameIndex],
+          staffId: staffId,
+          schoolName: schoolName,
+          spreadsheetId: schoolSpreadsheetId,
+          assignedClasses: assignedClasses,
+          authToken: authToken,
+          userType: 'teacher'
+        };
       }
     }
 
-    Logger.log(`Teacher login failed for Staff ID: ${staffId}`);
-    return { success: false, message: 'Invalid Staff ID or password.' };
+    Logger.log(`Teacher login failed for Mobile: ${mobile}`);
+    return { success: false, message: 'Invalid mobile number or password.' };
   } catch (error) {
     Logger.log(`Error during teacher login: ${error}`);
     return { success: false, message: `Login error: ${error.message}` };
