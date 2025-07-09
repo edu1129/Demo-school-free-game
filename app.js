@@ -72,6 +72,19 @@ app.get('/list.html', (req, res) => {
     });
 });
 
+app.get('/password.html', (req, res) => {
+    const listPath = path.join(__dirname, 'password.html');
+    res.sendFile(listPath, (err) => {
+        if (err) {
+            console.error("Error sending list.html:", err);
+            if (!res.headersSent) {
+                res.status(404).send("File not found.");
+            }
+        }
+    });
+});
+
+
 // Central API proxy endpoint
 app.post('/api', async (req, res) => {
     // Expecting { action: 'actionName', payload: { ... } } in the request body
