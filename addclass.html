@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class & Subject Management Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { background-color: #f8f9fa; font-family: sans-serif; }
+        .container { max-width: 1140px; margin-top: 2rem; }
+        .card { margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border: none; }
+        .card-header { background-color: #007bff; color: white; font-weight: bold; }
+        .table thead th { background-color: #e9ecef; }
+        .form-label { font-weight: 500; }
+        #loadingIndicator { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+        #alertArea { position: fixed; top: 1rem; right: 1rem; z-index: 1050; max-width: 90%; }
+        .list-group-item small { color: #6c757d; }
+        #managementSections { display: none; }
+        #authErrorSection { display: none; min-height: 70vh; display: flex; align-items: center; justify-content: center;}
+    </style>
+</head>
+<body>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" style="display: none;">
+        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+    </div>
+
+    <!-- Alert Area -->
+    <div id="alertArea"></div>
+
+    <div class="container">
+        <h1 class="mb-4 text-center text-primary"><i class="fas fa-cogs me-2"></i> Class & Subject Tool</h1>
+
+        <!-- Auth Error Section -->
+        <div id="authErrorSection">
+            <div class="col-md-8 text-center">
+                 <div class="card shadow-sm">
+                    <div class="card-header bg-danger"><i class="fas fa-exclamation-triangle me-1"></i> Authentication Required</div>
+                    <div class="card-body p-4">
+                        <p class="lead">You must be logged in to use this tool.</p>
+                        <p>Please log in through the main dashboard to continue.</p>
+                        <a href="/index.html" class="btn btn-primary mt-3"><i class="fas fa-sign-in-alt me-1"></i> Go to Login Page</a>
+                    </div>
+                 </div>
+            </div>
+        </div>
+
+        <!-- School Info Display (Shown after login) -->
+        <div id="schoolInfoDisplay" class="alert alert-info" style="display: none;">
+            Managing School: <strong id="loggedInSchoolName"></strong>
+            <a href="/index.html" class="btn btn-sm btn-outline-primary float-end ms-2"><i class="fas fa-tachometer-alt me-1"></i> Dashboard</a>
+            <button id="logoutButton" class="btn btn-sm btn-outline-danger float-end"><i class="fas fa-sign-out-alt me-1"></i> Logout</button>
+        </div>
+
+        <!-- Management Sections (Shown after login and data load) -->
+        <div id="managementSections">
+            <div class="row">
+                <!-- Manage Classes -->
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header"><i class="fas fa-chalkboard me-2"></i> Manage Classes</div>
+                        <div class="card-body">
+                            <form id="addClassForm" class="mb-3 p-3 border rounded bg-light"> <h5 class="mb-3">Add New Class</h5> <div class="mb-2"> <label for="newClassName" class="form-label">Class Name*</label> <input type="text" class="form-control form-control-sm" id="newClassName" required> </div> <div class="mb-2"> <label for="newClassSection" class="form-label">Section (Optional)</label> <input type="text" class="form-control form-control-sm" id="newClassSection"> </div> <div class="mb-2"> <label for="classTeacherSelect" class="form-label">Class Teacher (Optional)</label> <select id="classTeacherSelect" class="form-select form-select-sm"> <option value="" selected>-- None --</option> </select> </div> <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-plus me-1"></i> Add Class</button> </form>
+                            <h6>Existing Classes</h6> <ul id="classList" class="list-group list-group-flush"></ul>
+                        </div>
+                    </div>
+                </div>
+                <!-- Manage Subjects -->
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header"><i class="fas fa-book me-2"></i> Manage Subjects</div>
+                        <div class="card-body">
+                            <form id="addSubjectForm" class="mb-3 p-3 border rounded bg-light"> <h5 class="mb-3">Add New Subject</h5> <div class="mb-2"> <label for="newSubjectName" class="form-label">Subject Name*</label> <input type="text" class="form-control form-control-sm" id="newSubjectName" required> </div> <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-plus me-1"></i> Add Subject</button> </form>
+                             <h6>Existing Subjects</h6> <ul id="subjectList" class="list-group list-group-flush"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4">
+                 <!-- Manage Assignments -->
+                <div class="col-12">
+                     <div class="card">
+                        <div class="card-header"><i class="fas fa-user-tag me-2"></i> Manage Teacher Assignments</div>
+                        <div class="card-body">
+                             <form id="assignTeacherForm" class="mb-3 p-3 border rounded bg-light"> <h5 class="mb-3">Assign Teacher to Subject in Class</h5> <div class="row"> <div class="col-md-4 mb-2"> <label for="assignClassSelect" class="form-label">Select Class*</label> <select id="assignClassSelect" class="form-select form-select-sm" required> <option value="" selected disabled>-- Select --</option> </select> </div> <div class="col-md-4 mb-2"> <label for="assignSubjectSelect" class="form-label">Select Subject*</label> <select id="assignSubjectSelect" class="form-select form-select-sm" required> <option value="" selected disabled>-- Select --</option> </select> </div> <div class="col-md-4 mb-2"> <label for="assignTeacherSelect" class="form-label">Select Teacher*</label> <select id="assignTeacherSelect" class="form-select form-select-sm" required> <option value="" selected disabled>-- Select --</option> </select> </div> </div> <button type="submit" class="btn btn-sm btn-success mt-2"><i class="fas fa-link me-1"></i> Assign Teacher</button> </form>
+                            <h6>Current Assignments</h6> <div class="table-responsive"> <table class="table table-sm table-striped table-hover"> <thead> <tr><th>Assignment ID</th><th>Class</th><th>Subject</th><th>Teacher</th><th>Actions</th></tr> </thead> <tbody id="assignmentList"></tbody> </table> </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div><!-- End Management Sections -->
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- Configuration ---
+        const API_URL = '/api6'; // All requests go to the 6th GAS URL via proxy
+        const SPREADSHEET_ID_KEY = 'principalSpreadsheetId'; // Key used in main app (index.html)
+        const SCHOOL_NAME_KEY = 'schoolName'; // Key used in main app
+
+        // --- Global State ---
+        let schoolSpreadsheetId = null;
+        let loggedInSchoolName = null;
+        let currentClasses = [];
+        let currentSubjects = [];
+        let currentStaff = [];
+        let currentAssignments = [];
+
+        // --- DOM Elements ---
+        const managementSections = document.getElementById('managementSections');
+        const schoolInfoDisplay = document.getElementById('schoolInfoDisplay');
+        const loggedInSchoolNameEl = document.getElementById('loggedInSchoolName');
+        const authErrorSection = document.getElementById('authErrorSection');
+
+        // --- Utility Functions ---
+        function showLoading(show = true) { document.getElementById('loadingIndicator').style.display = show ? 'flex' : 'none'; }
+        function showAlert(message, type = 'info', duration = 4000) {
+             const alertArea = document.getElementById('alertArea');
+             const alertId = `alert-${Date.now()}`;
+             const alertHtml = `<div id="${alertId}" class="alert alert-${type} alert-dismissible fade show m-1" role="alert" style="min-width: 250px; max-width: 90%;"><i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'danger' ? 'fa-exclamation-triangle' : 'fa-info-circle'} me-2"></i>${message}<button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button></div>`;
+             alertArea.insertAdjacentHTML('beforeend', alertHtml);
+             const alertElement = document.getElementById(alertId);
+             if (alertElement) {
+                setTimeout(() => {
+                    const bsAlert = bootstrap.Alert.getOrCreateInstance(alertElement);
+                    if (bsAlert) bsAlert.close();
+                 }, duration);
+             }
+        }
+
+        // --- Backend Interaction ---
+        async function callApi(action, payload = {}) {
+             if (!schoolSpreadsheetId) {
+                 showAlert("Session expired or not logged in. Please log in again.", "danger");
+                 handleLogout();
+                 return null;
+             }
+             // Always include the spreadsheetId from the global state
+             const fullPayload = { ...payload, spreadsheetId: schoolSpreadsheetId };
+
+             showLoading(true);
+             console.log(`Calling API action: ${action}`, fullPayload);
+             try {
+                 const response = await fetch(API_URL, {
+                     method: 'POST',
+                     cache: 'no-cache',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({ action: action, payload: fullPayload })
+                 });
+                 showLoading(false);
+                 
+                 const result = await response.json();
+                 console.log(`API response for ${action}:`, result);
+
+                 if (!response.ok || (result && result.success === false)) {
+                    const errorMsg = result.message || `HTTP error! status: ${response.status}`;
+                    console.error(`API Error (${action}):`, errorMsg);
+                    showAlert(`Error: ${errorMsg}`, 'danger');
+                    // If the error suggests an invalid ID, force logout
+                    if (response.status === 401 || response.status === 403 || response.status === 404 || result.authError) {
+                        handleLogout();
+                    }
+                    return { success: false, message: errorMsg };
+                 }
+                 
+                 return result;
+             } catch (error) {
+                 showLoading(false);
+                 console.error(`Network error (${action}):`, error);
+                 showAlert(`Network error: ${error.message}`, 'danger');
+                 return { success: false, message: `Network error: ${error.message}` };
+             }
+         }
+
+         // --- Page Initialization ---
+         function initializePage() {
+            const storedId = localStorage.getItem(SPREADSHEET_ID_KEY);
+            const storedName = localStorage.getItem(SCHOOL_NAME_KEY);
+
+            if (storedId && storedName) {
+                console.log("Found stored login info. Initializing page.");
+                schoolSpreadsheetId = storedId;
+                loggedInSchoolName = storedName;
+
+                authErrorSection.style.display = 'none';
+                schoolInfoDisplay.style.display = 'block';
+                loggedInSchoolNameEl.textContent = loggedInSchoolName;
+                managementSections.style.display = 'none';
+
+                showAlert(`Welcome, ${loggedInSchoolName}! Loading data...`, 'info', 2500);
+                loadInitialManagementData();
+            } else {
+                console.log("No stored login info found. Showing auth error.");
+                authErrorSection.style.display = 'flex';
+                managementSections.style.display = 'none';
+                schoolInfoDisplay.style.display = 'none';
+            }
+        }
+
+        // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initializePage();
+            document.getElementById('logoutButton').addEventListener('click', handleLogout);
+            document.getElementById('addClassForm').addEventListener('submit', handleAddClass);
+            document.getElementById('addSubjectForm').addEventListener('submit', handleAddSubject);
+            document.getElementById('assignTeacherForm').addEventListener('submit', handleAssignTeacher);
+            document.getElementById('assignmentList').addEventListener('click', (event) => {
+                if (event.target.closest('.delete-assignment-btn')) {
+                     showAlert("Delete functionality not implemented yet.", "warning");
+                }
+            });
+        });
+
+        // --- Logout Handler ---
+        function handleLogout() {
+            localStorage.removeItem(SPREADSHEET_ID_KEY);
+            localStorage.removeItem(SCHOOL_NAME_KEY);
+            // Redirect to main login page
+            window.location.href = '/index.html';
+        }
+
+        // --- Data Loading and Rendering ---
+        async function loadInitialManagementData() {
+             managementSections.style.display = 'none';
+             const result = await callApi('getManagementData');
+
+             if (result && result.success) {
+                 currentClasses = result.classes?.data || [];
+                 currentSubjects = result.subjects?.data || [];
+                 currentStaff = result.staff?.data || [];
+                 currentAssignments = result.assignments?.data || [];
+
+                 populateDropdowns();
+                 renderLists();
+                 managementSections.style.display = 'block';
+                 showAlert("Management data loaded.", "success", 2000);
+             } else {
+                  showAlert(`Failed to load management data. Please try refreshing.`, 'danger');
+             }
+         }
+
+        // --- Add/Assign Handlers ---
+        async function handleAddClass(event) {
+             event.preventDefault();
+            const className = document.getElementById('newClassName').value.trim();
+            const section = document.getElementById('newClassSection').value.trim();
+            const classTeacherStaffId = document.getElementById('classTeacherSelect').value;
+            if (!className) { showAlert("Class Name is required.", "warning"); return; }
+            const result = await callApi('addClass', { classInfo: { className, section, classTeacherStaffId } });
+            if (result?.success && result.newClass) {
+                const existingIndex = currentClasses.findIndex(c => c.ClassID === result.newClass.ClassID);
+                if (existingIndex > -1) currentClasses[existingIndex] = result.newClass;
+                else currentClasses.push(result.newClass);
+                renderClassList();
+                populateClassDropdown();
+                showAlert("Class added.", "success", 2000);
+                event.target.reset();
+             }
+        }
+        async function handleAddSubject(event) {
+             event.preventDefault();
+            const subjectName = document.getElementById('newSubjectName').value.trim();
+            if (!subjectName) { showAlert("Subject Name is required.", "warning"); return; }
+            const result = await callApi('addSubject', { subjectInfo: { subjectName } });
+            if (result?.success && result.newSubject) {
+                const existingIndex = currentSubjects.findIndex(s => s.SubjectID === result.newSubject.SubjectID);
+                if (existingIndex > -1) currentSubjects[existingIndex] = result.newSubject;
+                else currentSubjects.push(result.newSubject);
+                renderSubjectList();
+                populateSubjectDropdown();
+                showAlert("Subject added.", "success", 2000);
+                event.target.reset();
+            }
+        }
+        async function handleAssignTeacher(event) {
+             event.preventDefault();
+            const classId = document.getElementById('assignClassSelect').value;
+            const subjectId = document.getElementById('assignSubjectSelect').value;
+            const staffId = document.getElementById('assignTeacherSelect').value;
+            if (!classId || !subjectId || !staffId) { showAlert("Select Class, Subject, and Teacher.", "warning"); return; }
+            const result = await callApi('assignTeacher', { assignmentInfo: { classId, subjectId, staffId } });
+            if (result?.success && result.newAssignment) {
+                const existingIndex = currentAssignments.findIndex(a => a.AssignmentID === result.newAssignment.AssignmentID);
+                 if (existingIndex > -1) currentAssignments[existingIndex] = result.newAssignment;
+                 else currentAssignments.push(result.newAssignment);
+                renderAssignmentList();
+                showAlert("Teacher assigned.", "success", 2000);
+                event.target.reset();
+                document.getElementById('assignClassSelect').selectedIndex = 0;
+                document.getElementById('assignSubjectSelect').selectedIndex = 0;
+                document.getElementById('assignTeacherSelect').selectedIndex = 0;
+             }
+        }
+
+        // --- UI Update Functions (Copied from source, should be fine) ---
+        function populateDropdowns() { populateClassDropdown(); populateSubjectDropdown(); populateTeacherDropdown(); }
+        function renderLists() { renderClassList(); renderSubjectList(); renderAssignmentList(); }
+        function populateClassDropdown() { const select = document.getElementById('assignClassSelect'); select.innerHTML = '<option value="" selected disabled>-- Select --</option>'; currentClasses.sort((a, b) => (a.ClassName + (a.Section || '')).localeCompare(b.ClassName + (b.Section || ''))).forEach(cls => { select.innerHTML += `<option value="${cls.ClassID}">${cls.ClassName} ${cls.Section || ''}</option>`; }); }
+        function populateSubjectDropdown() { const select = document.getElementById('assignSubjectSelect'); select.innerHTML = '<option value="" selected disabled>-- Select --</option>'; currentSubjects.sort((a, b) => a.SubjectName.localeCompare(b.SubjectName)).forEach(sub => { select.innerHTML += `<option value="${sub.SubjectID}">${sub.SubjectName}</option>`; }); }
+        function populateTeacherDropdown() { const selects = [document.getElementById('classTeacherSelect'), document.getElementById('assignTeacherSelect')]; selects.forEach(select => { if (!select) return; const isClassTeacherSelect = select.id === 'classTeacherSelect'; select.innerHTML = isClassTeacherSelect ? '<option value="">-- None --</option>' : '<option value="" selected disabled>-- Select --</option>'; currentStaff.sort((a, b) => a.Name.localeCompare(b.Name)).forEach(staff => { select.innerHTML += `<option value="${staff.StaffID}">${staff.Name} (ID: ${staff.StaffID ? staff.StaffID.substring(0,6) : 'N/A'}...)</option>`; }); }); }
+        function renderClassList() { const listUl = document.getElementById('classList'); listUl.innerHTML = ''; if (currentClasses.length === 0) { listUl.innerHTML = '<li class="list-group-item text-center text-muted">No classes defined.</li>'; return; } const staffMap = currentStaff.reduce((map, s) => { map[s.StaffID] = s.Name; return map; }, {}); currentClasses.sort((a, b) => (a.ClassName + (a.Section || '')).localeCompare(b.ClassName + (b.Section || ''))).forEach(cls => { const teacherName = staffMap[cls.ClassTeacherStaffID] || '<em class="text-muted">None</em>'; const safeClassID = cls.ClassID ? cls.ClassID.substring(0,8) : 'N/A'; listUl.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center"><div><strong>${cls.ClassName} ${cls.Section || ''}</strong><br><small>Teacher: ${teacherName}</small></div><small class="text-muted" title="Class ID: ${cls.ClassID}">ID: ${safeClassID}...</small></li>`; }); }
+        function renderSubjectList() { const listUl = document.getElementById('subjectList'); listUl.innerHTML = ''; if (currentSubjects.length === 0) { listUl.innerHTML = '<li class="list-group-item text-center text-muted">No subjects defined.</li>'; return; } currentSubjects.sort((a, b) => a.SubjectName.localeCompare(b.SubjectName)).forEach(sub => { const safeSubjectID = sub.SubjectID ? sub.SubjectID.substring(0,8) : 'N/A'; listUl.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">${sub.SubjectName}<small class="text-muted" title="Subject ID: ${sub.SubjectID}">ID: ${safeSubjectID}...</small></li>`; }); }
+        function renderAssignmentList() { const listBody = document.getElementById('assignmentList'); listBody.innerHTML = ''; if (currentAssignments.length === 0) { listBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No assignments.</td></tr>'; return; } const classMap = currentClasses.reduce((map, c) => { map[c.ClassID] = `${c.ClassName} ${c.Section || ''}`; return map; }, {}); const subjectMap = currentSubjects.reduce((map, s) => { map[s.SubjectID] = s.SubjectName; return map; }, {}); const staffMap = currentStaff.reduce((map, s) => { map[s.StaffID] = s.Name; return map; }, {}); currentAssignments.sort((a, b) => { const classA = classMap[a.ClassID] || ''; const classB = classMap[b.ClassID] || ''; if (classA !== classB) return classA.localeCompare(classB); return (subjectMap[a.SubjectID] || '').localeCompare(subjectMap[b.SubjectID] || ''); }).forEach(a => { const className = classMap[a.ClassID] || `<em class="text-danger">Unknown Class</em>`; const subjectName = subjectMap[a.SubjectID] || `<em class="text-danger">Unknown Subject</em>`; const teacherName = staffMap[a.StaffID] || `<em class="text-danger">Unknown Staff</em>`; const safeAssignmentID = a.AssignmentID ? a.AssignmentID.substring(0, 8) : 'N/A'; const actions = `<button class="btn btn-xs btn-outline-danger delete-assignment-btn" data-assignment-id="${a.AssignmentID}" title="Delete Assignment"><i class="fas fa-trash-alt fa-xs"></i></button>`; listBody.innerHTML += `<tr><td title="Assignment ID: ${a.AssignmentID}">${safeAssignmentID}...</td><td>${className}</td><td>${subjectName}</td><td>${teacherName}</td><td>${actions}</td></tr>`; }); }
+    </script>
+
+</body>
+</html>
