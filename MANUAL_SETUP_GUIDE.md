@@ -101,6 +101,7 @@ GAS_URL2="https://script.google.com/macros/s/your_code2_gs_deployment_id/exec"
 GAS_URL3="https://script.google.com/macros/s/your_code3_gs_deployment_id/exec"
 GAS_URL4="https://script.google.com/macros/s/your_code4_gs_deployment_id/exec"
 GAS_URL5="https://script.google.com/macros/s/your_code5_gs_deployment_id/exec"
+GAS_URL6="https://script.google.com/macros/s/your_code6_gs_deployment_id/exec"
 
 PORT=3000
 ```
