@@ -35,6 +35,9 @@ function doPost(e) {
       case 'assignTeacher':
         response = assignTeacher(payload.spreadsheetId, payload.assignmentInfo);
         break;
+      case 'deleteAssignment':
+        response = deleteAssignment(payload.spreadsheetId, payload.assignmentId);
+        break;
       default:
         response = { success: false, message: `Unknown action: ${action}` };
     }
@@ -145,6 +148,38 @@ function assignTeacher(spreadsheetId, assignmentInfo) {
     } catch (error) {
         Logger.log(`Error assigning teacher: ${error.stack}`);
         return { success: false, message: `Failed to assign teacher: ${error.message}` };
+    }
+}
+
+
+function deleteAssignment(spreadsheetId, assignmentId) {
+    try {
+        const assignmentSheet = getSheet(spreadsheetId, 'ClassSubjects');
+        if (!assignmentSheet || assignmentSheet.getLastRow() < 2) {
+            throw new Error("ClassSubjects sheet not found or is empty.");
+        }
+
+        const data = assignmentSheet.getDataRange().getValues();
+        const headers = data[0];
+        const assignmentIdIndex = headers.indexOf('AssignmentID');
+
+        if (assignmentIdIndex === -1) {
+            throw new Error("AssignmentID column not found in ClassSubjects sheet.");
+        }
+
+        for (let i = data.length - 1; i >= 1; i--) { // Iterate backwards for safe deletion
+            if (data[i][assignmentIdIndex] == assignmentId) {
+                assignmentSheet.deleteRow(i + 1);
+                Logger.log(`Deleted assignment with ID ${assignmentId} from ${spreadsheetId}`);
+                return { success: true, message: 'Assignment deleted successfully.' };
+            }
+        }
+
+        return { success: false, message: 'Assignment not found.' };
+
+    } catch (error) {
+        Logger.log(`Error deleting assignment: ${error.stack}`);
+        return { success: false, message: `Failed to delete assignment: ${error.message}` };
     }
 }
 

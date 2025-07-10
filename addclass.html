@@ -9,6 +9,27 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         body { background-color: #f0f4f9; font-family: 'Poppins', sans-serif, system-ui; }
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        #loader p {
+            margin-top: 1rem;
+            font-weight: 500;
+            color: #334155;
+        }
+        #main-content {
+            display: none; /* Hidden by default */
+        }
         .container { max-width: 1140px; }
         .card { border: none; border-radius: 0.8rem; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08); margin-top: 1.5rem; }
         .card-header { background-color: #1e293b; color: white; font-weight: 600; font-size: 1.1rem; }
@@ -19,106 +40,108 @@
         .btn-secondary { background-color: #64748b; border-color: #64748b; }
         .btn-success { background-color: #10b981; border-color: #10b981; }
         .list-group-item { background-color: #f8fafc; }
-        #loadingIndicator { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.8); z-index: 9999; }
         .button-loading { position: relative; color: transparent !important; pointer-events: none; }
         .button-loading::after { content: ''; position: absolute; top: 50%; left: 50%; width: 1.2em; height: 1.2em; margin-top: -0.6em; margin-left: -0.6em; border: 2px solid rgba(255, 255, 255, 0.8); border-right-color: transparent; border-radius: 50%; animation: button-spin 0.6s linear infinite; }
         @keyframes button-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div id="loadingIndicator" class="d-flex justify-content-center align-items-center" style="display: none;">
+    <div id="loader">
         <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
+        <p>Authenticating and loading data...</p>
     </div>
 
-    <div class="container py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 mb-0 text-dark">Class & Subject Management Tool</h1>
-            <a href="/index.html" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back to Dashboard</a>
-        </div>
-
-        <div id="alertArea"></div>
-
-        <div class="row">
-            <!-- Column 1: Add Forms -->
-            <div class="col-lg-5">
-                <!-- Add Class Card -->
-                <div class="card">
-                    <div class="card-header"><i class="fas fa-chalkboard"></i> Add New Class</div>
-                    <div class="card-body">
-                        <form id="addClassForm">
-                            <div class="mb-3">
-                                <label for="className" class="form-label">Class Name*</label>
-                                <input type="text" class="form-control" id="className" placeholder="e.g., Class 10" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="classSection" class="form-label">Section</label>
-                                <input type="text" class="form-control" id="classSection" placeholder="e.g., A (Optional)">
-                            </div>
-                            <div class="mb-3">
-                                <label for="classTeacher" class="form-label">Class Teacher</label>
-                                <select id="classTeacher" class="form-select">
-                                    <option value="">-- Select Teacher (Optional) --</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100"><i class="fas fa-plus me-2"></i>Add Class</button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Add Subject Card -->
-                <div class="card">
-                    <div class="card-header"><i class="fas fa-book"></i> Add New Subject</div>
-                    <div class="card-body">
-                        <form id="addSubjectForm">
-                            <div class="mb-3">
-                                <label for="subjectName" class="form-label">Subject Name*</label>
-                                <input type="text" class="form-control" id="subjectName" placeholder="e.g., Mathematics" required>
-                            </div>
-                            <button type="submit" class="btn btn-secondary w-100"><i class="fas fa-plus me-2"></i>Add Subject</button>
-                        </form>
-                    </div>
-                </div>
+    <div id="main-content">
+        <div class="container py-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-dark">Class & Subject Management Tool</h1>
+                <a href="/index.html" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back to Dashboard</a>
             </div>
 
-            <!-- Column 2: Assignment and Lists -->
-            <div class="col-lg-7">
-                <!-- Assign Teacher Card -->
-                <div class="card">
-                    <div class="card-header"><i class="fas fa-user-tag"></i> Assign Teacher to Subject</div>
-                    <div class="card-body">
-                        <form id="assignTeacherForm">
-                            <div class="mb-3">
-                                <label for="assignClass" class="form-label">Select Class*</label>
-                                <select id="assignClass" class="form-select" required>
-                                    <option value="">-- Loading Classes --</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="assignSubject" class="form-label">Select Subject*</label>
-                                <select id="assignSubject" class="form-select" required>
-                                    <option value="">-- Loading Subjects --</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="assignTeacher" class="form-label">Select Teacher*</label>
-                                <select id="assignTeacher" class="form-select" required>
-                                    <option value="">-- Loading Teachers --</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-success w-100"><i class="fas fa-check me-2"></i>Assign Teacher</button>
-                        </form>
+            <div id="alertArea"></div>
+
+            <div class="row">
+                <!-- Column 1: Add Forms -->
+                <div class="col-lg-5">
+                    <!-- Add Class Card -->
+                    <div class="card">
+                        <div class="card-header"><i class="fas fa-chalkboard"></i> Add New Class</div>
+                        <div class="card-body">
+                            <form id="addClassForm">
+                                <div class="mb-3">
+                                    <label for="className" class="form-label">Class Name*</label>
+                                    <input type="text" class="form-control" id="className" placeholder="e.g., Class 10" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="classSection" class="form-label">Section</label>
+                                    <input type="text" class="form-control" id="classSection" placeholder="e.g., A (Optional)">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="classTeacher" class="form-label">Class Teacher</label>
+                                    <select id="classTeacher" class="form-select">
+                                        <option value="">-- Select Teacher (Optional) --</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-plus me-2"></i>Add Class</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Add Subject Card -->
+                    <div class="card">
+                        <div class="card-header"><i class="fas fa-book"></i> Add New Subject</div>
+                        <div class="card-body">
+                            <form id="addSubjectForm">
+                                <div class="mb-3">
+                                    <label for="subjectName" class="form-label">Subject Name*</label>
+                                    <input type="text" class="form-control" id="subjectName" placeholder="e.g., Mathematics" required>
+                                </div>
+                                <button type="submit" class="btn btn-secondary w-100"><i class="fas fa-plus me-2"></i>Add Subject</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Existing Assignments Card -->
-                <div class="card">
-                    <div class="card-header"><i class="fas fa-list-ul"></i> Existing Assignments</div>
-                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                        <ul id="assignmentList" class="list-group list-group-flush">
-                            <li class="list-group-item text-center">Loading assignments...</li>
-                        </ul>
+                <!-- Column 2: Assignment and Lists -->
+                <div class="col-lg-7">
+                    <!-- Assign Teacher Card -->
+                    <div class="card">
+                        <div class="card-header"><i class="fas fa-user-tag"></i> Assign Teacher to Subject</div>
+                        <div class="card-body">
+                            <form id="assignTeacherForm">
+                                <div class="mb-3">
+                                    <label for="assignClass" class="form-label">Select Class*</label>
+                                    <select id="assignClass" class="form-select" required>
+                                        <option value="">-- Loading Classes --</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="assignSubject" class="form-label">Select Subject*</label>
+                                    <select id="assignSubject" class="form-select" required>
+                                        <option value="">-- Loading Subjects --</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="assignTeacher" class="form-label">Select Teacher*</label>
+                                    <select id="assignTeacher" class="form-select" required>
+                                        <option value="">-- Loading Teachers --</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100"><i class="fas fa-check me-2"></i>Assign Teacher</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Existing Assignments Card -->
+                    <div class="card">
+                        <div class="card-header"><i class="fas fa-list-ul"></i> Existing Assignments</div>
+                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                            <ul id="assignmentList" class="list-group list-group-flush">
+                                <li class="list-group-item text-center">Loading assignments...</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -129,7 +152,8 @@
         const API_ENDPOINT = '/api6';
 
         // DOM Elements
-        const loadingIndicator = document.getElementById('loadingIndicator');
+        const loader = document.getElementById('loader');
+        const mainContent = document.getElementById('main-content');
         const alertArea = document.getElementById('alertArea');
         const classTeacherSelect = document.getElementById('classTeacher');
         const assignClassSelect = document.getElementById('assignClass');
@@ -146,10 +170,6 @@
         let allData = { classes: [], subjects: [], staff: [], assignments: [] };
 
         // Utility Functions
-        const showLoading = (show = true) => {
-            loadingIndicator.style.display = show ? 'flex' : 'none';
-        };
-
         const showAlert = (message, type = 'info', duration = 4000) => {
             const wrapper = document.createElement('div');
             wrapper.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
@@ -158,11 +178,13 @@
             </div>`;
             alertArea.innerHTML = '';
             alertArea.append(wrapper);
-            setTimeout(() => bootstrap.Alert.getOrCreateInstance(wrapper.firstElementChild)?.close(), duration);
+            if (duration > 0) {
+                setTimeout(() => bootstrap.Alert.getOrCreateInstance(wrapper.firstElementChild)?.close(), duration);
+            }
         };
 
         const callApi = async (action, payload = {}) => {
-            const btn = document.querySelector(`form[id*="${action.replace('add', '').toLowerCase()}"] button[type="submit"]`);
+            const btn = document.querySelector(`form[id*="${action.replace(/([A-Z])/g, '-$1').toLowerCase()}"] button[type="submit"]`);
             if (btn) btn.classList.add('button-loading');
             
             const authToken = localStorage.getItem('authToken');
@@ -170,9 +192,7 @@
             const userType = localStorage.getItem('userType');
 
             if (!authToken || !spreadsheetId || userType !== 'principal') {
-                showAlert('Authentication error. Please log in as a principal.', 'danger');
-                window.location.href = '/index.html';
-                return;
+                throw new Error('Authentication error. Please log in as a principal.');
             }
 
             try {
@@ -187,9 +207,7 @@
                 const result = await response.json();
 
                 if (result.authError) {
-                    showAlert('Session expired. Please log in again.', 'danger');
-                    window.location.href = '/index.html';
-                    return;
+                    throw new Error('Session expired. Please log in again.');
                 }
                 if (!response.ok || !result.success) {
                     throw new Error(result.message || 'An unknown API error occurred.');
@@ -206,7 +224,7 @@
         // Data Rendering Functions
         const populateSelect = (selectElement, items, valueField, textField, defaultOptionText) => {
             selectElement.innerHTML = `<option value="">-- ${defaultOptionText} --</option>`;
-            items.forEach(item => {
+            items.sort((a, b) => (a[textField] || '').localeCompare(b[textField] || '')).forEach(item => {
                 const option = document.createElement('option');
                 option.value = item[valueField];
                 option.textContent = typeof textField === 'function' ? textField(item) : item[textField];
@@ -232,7 +250,7 @@
             const subjectMap = new Map(allData.subjects.map(s => [s.SubjectID, s.SubjectName]));
             const staffMap = new Map(allData.staff.map(s => [s.StaffID, s.Name]));
 
-            allData.assignments.forEach(a => {
+            allData.assignments.sort((a,b) => (classMap.get(a.ClassID) || '').localeCompare(classMap.get(b.ClassID) || '')).forEach(a => {
                 const li = document.createElement('li');
                 li.className = 'list-group-item d-flex justify-content-between align-items-center';
                 li.innerHTML = `
@@ -240,7 +258,7 @@
                         <span class="fw-bold">${classMap.get(a.ClassID) || 'Unknown Class'}</span>
                         <small class="d-block text-muted">${subjectMap.get(a.SubjectID) || 'Unknown Subject'} &rarr; ${staffMap.get(a.StaffID) || 'Unknown Teacher'}</small>
                     </div>
-                    <button class="btn btn-outline-danger btn-sm btn-icon" title="Delete (Not Implemented)"><i class="fas fa-trash"></i></button>
+                    <button class="btn btn-outline-danger btn-sm btn-icon" onclick="deleteAssignment('${a.AssignmentID}')" title="Delete Assignment"><i class="fas fa-trash"></i></button>
                 `;
                 assignmentListUl.appendChild(li);
             });
@@ -248,17 +266,18 @@
 
         // Initial Data Load
         const loadInitialData = async () => {
-            showLoading(true);
             try {
                 const result = await callApi('getInitialData');
                 if (result && result.success) {
                     allData = result.data;
                     renderAllData();
+                    loader.style.display = 'none';
+                    mainContent.style.display = 'block';
                 }
             } catch (error) {
                 console.error("Failed to load initial data:", error);
-            } finally {
-                showLoading(false);
+                loader.style.display = 'none';
+                showAlert('Failed to load required data. Please <a href="/index.html">log in</a> again. Error: ' + error.message, 'danger', 0);
             }
         };
 
@@ -275,7 +294,7 @@
                 return;
             }
             try {
-                const result = await callApi('addClass', { classInfo });
+                await callApi('addClass', { classInfo });
                 showAlert('Class added successfully!', 'success');
                 addClassForm.reset();
                 await loadInitialData(); // Refresh all data
@@ -294,7 +313,7 @@
                 return;
             }
             try {
-                const result = await callApi('addSubject', { subjectInfo });
+                await callApi('addSubject', { subjectInfo });
                 showAlert('Subject added successfully!', 'success');
                 addSubjectForm.reset();
                 await loadInitialData(); // Refresh all data
@@ -315,7 +334,7 @@
                 return;
             }
             try {
-                const result = await callApi('assignTeacher', { assignmentInfo });
+                await callApi('assignTeacher', { assignmentInfo });
                 showAlert('Teacher assigned successfully!', 'success');
                 assignTeacherForm.reset();
                 await loadInitialData(); // Refresh all data
@@ -323,6 +342,17 @@
                 console.error("Failed to assign teacher:", error);
             }
         });
+        
+        async function deleteAssignment(assignmentId) {
+            if (!confirm('Are you sure you want to delete this assignment?')) return;
+            try {
+                await callApi('deleteAssignment', { assignmentId });
+                showAlert('Assignment deleted successfully!', 'success');
+                await loadInitialData(); // Refresh all data
+            } catch (error) {
+                console.error("Failed to delete assignment:", error);
+            }
+        }
 
         // Page Load
         document.addEventListener('DOMContentLoaded', loadInitialData);
