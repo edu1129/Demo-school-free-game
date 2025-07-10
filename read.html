@@ -127,6 +127,59 @@
             </div>
         </div>
     </div>
+
+        <div class="card">
+            <div class="card-header bg-danger">
+                Error 401 (Unauthorized) का समाधान और मैनुअल सेटअप
+            </div>
+            <div class="card-body">
+                <p>आपको <strong>"Error: Upstream GAS error (Status: 401, Non-JSON response)"</strong> त्रुटि मिल रही है। यह एक सामान्य समस्या है और इसका मतलब है कि आपका Node.js सर्वर Google Apps Script तक नहीं पहुंच पा रहा है। यह आमतौर पर अनुमति (permission) या परिनियोजन (deployment) सेटिंग्स के कारण होता है।</p>
+                
+                <h5>1. Google Apps Script को सही ढंग से Deploy करें</h5>
+                <p>यह सबसे महत्वपूर्ण कदम है। आपको अपने सभी 5 Apps Script प्रोजेक्ट (Code.gs, Code2.gs, आदि) के लिए यह करना होगा।</p>
+                <ol>
+                    <li>अपने Google Apps Script प्रोजेक्ट को खोलें।</li>
+                    <li>ऊपर दाईं ओर नीले <strong>"Deploy"</strong> बटन पर क्लिक करें, फिर <strong>"New deployment"</strong> चुनें। (मौजूदा परिनियोजन को संपादित न करें, हमेशा एक नया बनाएं)।</li>
+                    <li>"Select type" के बगल में गियर आइकन पर क्लिक करें और <strong>"Web app"</strong> चुनें।</li>
+                    <li>अब, निम्नलिखित सेटिंग्स कॉन्फ़िगर करें:
+                        <ul>
+                            <li><strong>Description:</strong> कुछ भी लिखें (जैसे "Version 2")।</li>
+                            <li><strong>Execute as:</strong> <code>Me (your-email@gmail.com)</code> चुनें।</li>
+                            <li><strong>Who has access:</strong> <code>Anyone</code> चुनें। <strong>यह बहुत महत्वपूर्ण है।</strong></li>
+                        </ul>
+                    </li>
+                    <li><strong>"Deploy"</strong> बटन पर क्लिक करें।</li>
+                    <li>Google आपसे अनुमतियाँ (permissions) मांगेगा। <strong>"Authorize access"</strong> पर क्लिक करें, अपना Google खाता चुनें, "Advanced" पर क्लिक करें, और फिर "Go to (unsafe)" पर क्लिक करके अनुमतियाँ दें।</li>
+                    <li>परिनियोजन के बाद, आपको एक नया <strong>Web app URL</strong> मिलेगा। इस URL को कॉपी करें।</li>
+                    <li>इस नए URL को अपने Hostinger सर्वर पर संबंधित Environment Variable (जैसे <code>GAS_URL</code>, <code>GAS_URL2</code>, आदि) में अपडेट करें।</li>
+                    <li>अपने Node.js एप्लिकेशन को पुनरारंभ (restart) करें।</li>
+                </ol>
+                <div class="alert alert-info">
+                    <strong>नोट:</strong> आपको अपने सभी 5 स्क्रिप्ट के लिए यह प्रक्रिया दोहरानी होगी और Hostinger में सभी 5 URL को अपडेट करना होगा।
+                </div>
+
+                <h5>2. मुख्य स्प्रेडशीट में मैनुअल बदलाव</h5>
+                <p>आपको अपनी मुख्य "Schools" स्प्रेडशीट (ID: <code>1PjNIMBpDWqU_Vj8SHnCG39mvAqjZ1S51lcLxK5Apzf8</code>) में <strong>"Schools"</strong> नामक शीट में कुछ कॉलम मैन्युअल रूप से जोड़ने होंगे। पंजीकरण स्क्रिप्ट इन्हें स्वचालित रूप से नहीं बनाती है।</p>
+                <p>सुनिश्चित करें कि आपकी "Schools" शीट में निम्नलिखित कॉलम हेडर मौजूद हैं:</p>
+                <ul class="list-group">
+                    <li class="list-group-item">School Name</li>
+                    <li class="list-group-item">Principal Name</li>
+                    <li class="list-group-item">Mobile Number</li>
+                    <li class="list-group-item">Gmail</li>
+                    <li class="list-group-item">Password</li>
+                    <li class="list-group-item">Address</li>
+                    <li class="list-group-item">Website</li>
+                    <li class="list-group-item">School Image URL</li>
+                    <li class="list-group-item">SchoolSpreadsheetID</li>
+                    <li class="list-group-item">SchoolSpreadsheetURL</li>
+                    <li class="list-group-item">Registration Timestamp</li>
+                    <li class="list-group-item"><strong>SchoolCode</strong> <span class="badge bg-warning text-dark">यह जोड़ें</span> (शिक्षक लॉगिन और परिणाम देखने के लिए आवश्यक)</li>
+                    <li class="list-group-item"><strong>OTP</strong> <span class="badge bg-warning text-dark">यह जोड़ें</span> (पासवर्ड रीसेट के लिए आवश्यक)</li>
+                    <li class="list-group-item"><strong>Time</strong> <span class="badge bg-warning text-dark">यह जोड़ें</span> (पासवर्ड रीसेट के लिए आवश्यक)</li>
+                </ul>
+                <p class="mt-3">इन कॉलमों को जोड़ने के बाद, आपका सिस्टम सही ढंग से काम करना चाहिए। <strong>SchoolCode</strong> कॉलम में प्रत्येक स्कूल के लिए एक अद्वितीय कोड दर्ज करना याद रखें।</p>
+            </div>
+        </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
