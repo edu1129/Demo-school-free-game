@@ -65,7 +65,7 @@
 
 ### चरण 4: Google Apps Script को Deploy (तैनात) करें
 
-यह सबसे आम गलती की जगह है। आपको अपने सभी 5 स्क्रिप्ट (`Code.gs`, `Code2.gs`, आदि) को वेब ऐप के रूप में तैनात करना होगा।
+यह सबसे आम गलती की जगह है। आपको अपने सभी 6 स्क्रिप्ट (`Code.gs`, `Code2.gs`, आदि) को वेब ऐप के रूप में तैनात करना होगा।
 
 **प्रत्येक स्क्रिप्ट के लिए यह प्रक्रिया दोहराएं:**
 
@@ -95,12 +95,13 @@
 ```
 # .env file
 
-# चरण 4 से प्राप्त अपने 5 वेब ऐप URL यहाँ पेस्ट करें
+# चरण 4 से प्राप्त अपने 6 वेब ऐप URL यहाँ पेस्ट करें
 GAS_URL="https://script.google.com/macros/s/your_code_gs_deployment_id/exec"
 GAS_URL2="https://script.google.com/macros/s/your_code2_gs_deployment_id/exec"
 GAS_URL3="https://script.google.com/macros/s/your_code3_gs_deployment_id/exec"
 GAS_URL4="https://script.google.com/macros/s/your_code4_gs_deployment_id/exec"
 GAS_URL5="https://script.google.com/macros/s/your_code5_gs_deployment_id/exec"
+GAS_URL6="https://script.google.com/macros/s/your_code6_gs_deployment_id/exec"
 GAS_URL6="https://script.google.com/macros/s/your_code6_gs_deployment_id/exec"
 
 PORT=3000
