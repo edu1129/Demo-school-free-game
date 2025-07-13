@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>list.html और Code2.gs का विश्लेषण</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0f4f9;
+            font-family: 'Poppins', sans-serif, system-ui;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 960px;
+        }
+        .card {
+            border: none;
+            border-radius: 0.8rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            background-color: #1e293b;
+            color: white;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        .card-body h5 {
+            color: #4f46e5;
+            font-weight: 600;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+            margin-top: 1rem;
+        }
+        code {
+            background-color: #e2e8f0;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #dc3545;
+        }
+        .list-group-item {
+            border-color: #e2e8f0;
+        }
+        .alert-info {
+            background-color: #eef2ff;
+            border-color: #c7d2fe;
+            color: #4338ca;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="text-center">Dues List पेज का विश्लेषण</h1>
+            <a href="/index.html" class="btn btn-outline-secondary">डैशबोर्ड पर वापस जाएं</a>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                `list.html` और `Code2.gs` कैसे काम करते हैं?
+            </div>
+            <div class="card-body">
+                <p>यह दस्तावेज़ बताता है कि "Student Dues List" पेज (`list.html`) कैसे काम करता है और यह कौन सा डेटा दिखाता है।</p>
+                
+                <h5>1. यह कैसे काम करता है? (How does it work?)</h5>
+                <p>प्रक्रिया कई चरणों में होती है:</p>
+                <ol>
+                    <li>जब प्रिंसिपल डैशबोर्ड से "Dues List" पेज (`list.html`) खोलता है, तो पेज में लिखा जावास्क्रिप्ट कोड सक्रिय हो जाता है।</li>
+                    <li>यह जावास्क्रिप्ट आपके सर्वर (Hostinger) पर <code>/api2</code> नामक एक विशेष पते पर अनुरोध भेजता है।</li>
+                    <li>आपका सर्वर (`app.js` फ़ाइल) इस अनुरोध को प्राप्त करता है और इसे Google Apps Script `Code2.gs` पर भेज देता है।</li>
+                    <li><code>Code2.gs</code> स्क्रिप्ट आपके स्कूल की स्प्रेडशीट से डेटा निकालती है और उसका विश्लेषण करती है।</li>
+                    <li>विश्लेषण के बाद, यह केवल उन छात्रों की सूची वापस सर्वर को भेजती है जिनकी फीस बकाया है।</li>
+                    <li>सर्वर इस सूची को `list.html` पेज पर वापस भेजता है, जहाँ जावास्क्रिप्ट इसे एक टेबल में बड़े करीने से प्रदर्शित करता है।</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                डेटा विश्लेषण (Data Analysis)
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" role="alert">
+                    <h4 class="alert-heading">मुख्य बिंदु</h4>
+                    <p class="mb-0">यह पेज किसी <strong>एक विशेष क्लास</strong> का डेटा लोड नहीं करता है। इसके बजाय, यह <strong>सभी क्लासों</strong> से उन छात्रों को ढूंढता है जिनकी फीस बकाया है।</p>
+                </div>
+
+                <h5>2. किस क्लास का डेटा लोड होता है? (Which class's data is loaded?)</h5>
+                <p><code>Code2.gs</code> स्क्रिप्ट निम्नलिखित तीन शीट से डेटा पढ़ती है:</p>
+                <ul>
+                    <li><code>Students</code> (छात्रों की जानकारी के लिए)</li>
+                    <li><code>StudentsFees</code> (फीस के रिकॉर्ड के लिए)</li>
+                    <li><code>Classes</code> (क्लास के नाम के लिए)</li>
+                </ul>
+                <p>
+                    स्क्रिप्ट मुख्य रूप से <code>StudentsFees</code> शीट को स्कैन करती है। यह उन सभी पंक्तियों (records) को चुनती है जहाँ 'Status' कॉलम में <code>Due</code> या <code>Partial</code> लिखा होता है।
+                </p>
+                <p>
+                    इसका मतलब है कि यदि Class 5, Class 8, और Class 10 के छात्रों की फीस बकाया है, तो सूची में इन सभी क्लासों के छात्र दिखाई देंगे। यह किसी एक क्लास तक सीमित नहीं है।
+                </p>
+
+                <hr>
+
+                <h5>3. कितना डेटा लोड होता है? (How much data is loaded?)</h5>
+                <p>डेटा लोडिंग के दो स्तर हैं:</p>
+                <ul class="list-group">
+                    <li class="list-group-item">
+                        <strong>बैकएंड पर (Google सर्वर पर):</strong> विश्लेषण करने के लिए, <code>Code2.gs</code> स्क्रिप्ट आपकी <code>Students</code>, <code>StudentsFees</code>, और <code>Classes</code> शीट का पूरा डेटा मेमोरी में लोड करती है। यदि आपके पास हजारों रिकॉर्ड हैं, तो यह प्रक्रिया थोड़ी धीमी हो सकती है।
+                    </li>
+                    <li class="list-group-item">
+                        <strong>फ्रंटएंड पर (आपके ब्राउज़र में):</strong> बैकएंड पर विश्लेषण पूरा होने के बाद, केवल अंतिम परिणाम आपके ब्राउज़र पर भेजा जाता है। इस परिणाम में केवल उन छात्रों की एक संक्षिप्त सूची होती है जिनकी फीस बकाया है। इसमें निम्नलिखित जानकारी शामिल होती है:
+                        <ul>
+                            <li>Roll Number</li>
+                            <li>Student Name</li>
+                            <li>Class Name</li>
+                            <li>Total Dues (कुल बकाया राशि)</li>
+                        </ul>
+                    </li>
+                </ul>
+                <p class="mt-3">इसलिए, भले ही बैकएंड में बहुत सारा डेटा प्रोसेस होता है, आपके कंप्यूटर पर केवल आवश्यक और फ़िल्टर की गई जानकारी ही लोड होती है, जिससे पेज तेज़ रहता है।</p>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
