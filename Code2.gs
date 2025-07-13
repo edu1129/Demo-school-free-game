@@ -161,6 +161,7 @@ function getStudentsWithDues(spreadsheetId) {
         return {
           studentId: studentId,
           name: studentInfo.Name,
+          mobile: studentInfo.Mobile || 'N/A', // Add mobile number
           rollNumber: String(studentInfo.RollNumber || ''),
           className: classMap.get(studentInfo.Class) || 'N/A',
           dues: duesByStudent[studentId]
@@ -168,6 +169,9 @@ function getStudentsWithDues(spreadsheetId) {
       }
       return null; // Student in fees sheet but not in students sheet
     }).filter(Boolean); // Filter out nulls
+
+    // Sort by dues in descending order
+    studentsWithDues.sort((a, b) => b.dues - a.dues);
 
     return { success: true, data: studentsWithDues };
 

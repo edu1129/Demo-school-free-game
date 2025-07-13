@@ -59,6 +59,7 @@
                                 <th>Roll Number</th>
                                 <th>Student Name</th>
                                 <th>Class</th>
+                                <th>Mobile Number</th>
                                 <th>Total Dues (Rs)</th>
                             </tr>
                         </thead>
@@ -145,18 +146,19 @@
 
         function renderTable(data) {
             if (!data || data.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No students with outstanding dues found.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No students with outstanding dues found.</td></tr>`;
                 return;
             }
 
+            // Data is already sorted by the server (Code2.gs)
             let rowsHtml = '';
-            data.sort((a, b) => String(a.rollNumber || '').localeCompare(String(b.rollNumber || ''), undefined, { numeric: true }))
-                .forEach(student => {
+            data.forEach(student => {
                     rowsHtml += `
                         <tr>
                             <td>${student.rollNumber || 'N/A'}</td>
                             <td>${student.name || 'N/A'}</td>
                             <td>${student.className || 'N/A'}</td>
+                            <td>${student.mobile || 'N/A'}</td>
                             <td>${(student.dues || 0).toFixed(2)}</td>
                         </tr>
                     `;
