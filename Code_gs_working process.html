@@ -92,44 +92,39 @@
         </div>
 
         <div class="card">
-            <div class="card-header">
-                <i class="fas fa-link me-2"></i> कस्टम डोमेन URL कैसे सेट करें? (जैसे: https://image.digitalerp.shop/...)
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-link me-2"></i> नई कस्टम URL प्रक्रिया (New Custom URL Process)
             </div>
             <div class="card-body">
-                <p>आपका वांछित URL (<code>https://image.digitalerp.shop/...</code>) प्राप्त करने के लिए, आपको केवल कोड बदलने से ज़्यादा कुछ करना होगा। यह एक दो-चरणीय प्रक्रिया है:</p>
+                <p>आपके अनुरोध के अनुसार, <code>Code.gs</code> को अब एक कस्टम इमेज URL बनाने के लिए संशोधित कर दिया गया है। अब GitHub द्वारा दिया गया URL उपयोग नहीं किया जाएगा।</p>
 
-                <h5>चरण 1: अपना डोमेन और होस्टिंग सेट करें</h5>
-                <p>सबसे पहले, आपको यह सुनिश्चित करना होगा कि आपका डोमेन <code>image.digitalerp.shop</code> उस स्थान पर इंगित (point) कर रहा है जहाँ आपकी इमेज संग्रहीत हैं।</p>
-                <ul>
-                    <li><strong>विकल्प A (GitHub Pages):</strong> आप अपनी GitHub रिपॉजिटरी के लिए GitHub Pages को सक्रिय कर सकते हैं और उस पर अपना कस्टम डोमेन (<code>image.digitalerp.shop</code>) सेट कर सकते हैं।</li>
-                    <li><strong>विकल्प B (अन्य होस्टिंग):</strong> आप एक अलग इमेज होस्टिंग सेवा (जैसे AWS S3, Cloudinary, या कोई अन्य वेब होस्टिंग) का उपयोग कर सकते हैं और अपने डोमेन को वहां इंगित कर सकते हैं।</li>
-                </ul>
-                <div class="alert alert-warning">यह एक एडवांस सेटअप है जिसके लिए डोमेन और DNS सेटिंग्स के ज्ञान की आवश्यकता होती है।</div>
+                <h5>नई प्रक्रिया कैसे काम करती है:</h5>
+                <ol>
+                    <li>इमेज हमेशा की तरह आपके GitHub रिपॉजिटरी में अपलोड होती है।</li>
+                    <li>अपलोड सफल होने के बाद, स्क्रिप्ट GitHub से मिले URL को अनदेखा कर देती है।</li>
+                    <li>इसके बजाय, यह <code>"https://image.digitalerp.shop"</code> डोमेन का उपयोग करके एक नया URL बनाती है।</li>
+                    <li>यह नया URL (जैसे: <code>https://image.digitalerp.shop/school_images/School_Name/image.jpg</code>) स्प्रेडशीट में सहेजा जाता है।</li>
+                </ol>
 
-                <h5>चरण 2: Code.gs में बदलाव करें</h5>
-                <p>एक बार जब आपका डोमेन सही ढंग से सेट हो जाए, तो आपको <code>Code.gs</code> फ़ाइल में <code>uploadImageToGitHub</code> फ़ंक्शन को संशोधित करना होगा। आपको GitHub से मिले URL को अनदेखा करना होगा और अपना खुद का URL बनाना होगा।</p>
-                
-                <p><strong>बदलाव का क्षेत्र:</strong> <code>uploadImageToGitHub</code> फ़ंक्शन के अंत में।</p>
+                <div class="alert alert-warning" role="alert">
+                    <h4 class="alert-heading">महत्वपूर्ण सेटअप!</h4>
+                    <p>यह URL तभी काम करेगा जब आप अपने डोमेन <code>image.digitalerp.shop</code> को सही ढंग से कॉन्फ़िगर करेंगे ताकि वह आपकी GitHub रिपॉजिटरी की रॉ फाइलों को दिखाए। इसके लिए आपको अपने डोमेन प्रोवाइडर पर CNAME या प्रॉक्सी सेटअप करना होगा।</p>
+                </div>
 
-                <h6 class="mt-3">कोड का उदाहरण:</h6>
+                <h5 class="mt-4">संशोधित कोड (Modified Code in <code>Code.gs</code>)</h5>
+                <p><code>uploadImageToGitHub</code> फ़ंक्शन में अब यह लॉजिक है:</p>
                 <pre><code class="language-javascript">// ... function के अंदर, सफल अपलोड के बाद ...
 
     if (responseCode === 201 || responseCode === 200) {
-      const jsonResponse = JSON.parse(responseBody);
-      const githubUrl = jsonResponse.content?.download_url; // GitHub का URL
-
-      // --- यहाँ बदलाव करें --- 
-
-      // पुराना कोड जो GitHub का URL लौटाता है:
-      // return githubUrl;
-
-      // नया कोड जो आपका कस्टम URL बनाएगा:
+      // --- NEW: Custom URL Generation ---
       const customDomain = "https://image.digitalerp.shop";
-      // githubPath वही वेरिएबल है जो फ़ंक्शन में पहले से बना है
+
+      // 'githubPath' वेरिएबल में इमेज का पाथ पहले से मौजूद है
+      // (e.g., "school_images/My_School/12345_photo.jpg")
       const finalUrl = `${customDomain}/${githubPath}`;
       
-      Logger.log(`Custom URL created: ${finalUrl}`);
-      return finalUrl; // अपना बनाया हुआ URL लौटाएं
+      Logger.log(`Custom URL generated: ${finalUrl}`);
+      return finalUrl; // कस्टम URL लौटाया जाता है
 
     } else {
       // ... बाकी कोड वैसा ही रहेगा ...
@@ -137,7 +132,7 @@
 // ...</code></pre>
 
                 <h5 class="mt-4">निष्कर्ष</h5>
-                <p>संक्षेप में, आपको पहले अपने कस्टम डोमेन को अपनी इमेज स्टोरेज से जोड़ना होगा और फिर <code>Code.gs</code> में कोड को संशोधित करना होगा ताकि वह GitHub द्वारा दिए गए URL के बजाय आपके कस्टम डोमेन का उपयोग करके URL बनाए।</p>
+                <p>कोड अब आपके कस्टम डोमेन का उपयोग करके URL बनाने के लिए तैयार है। आपको बस यह सुनिश्चित करना है कि आपका डोमेन सही जगह पर इंगित कर रहा है।</p>
             </div>
         </div>
 

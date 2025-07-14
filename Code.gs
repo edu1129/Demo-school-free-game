@@ -386,15 +386,21 @@ function uploadImageToGitHub(imageDataBase64, fileName, schoolName) {
     Logger.log(`GitHub Upload Response Body: ${responseBody}`);
 
     if (responseCode === 201 || responseCode === 200) {
-      const jsonResponse = JSON.parse(responseBody);
-      // Prefer download_url for direct image access if available, else html_url
-      const imageUrl = jsonResponse.content?.download_url || jsonResponse.content?.html_url?.replace('/blob/', '/raw/');
-       if (!imageUrl) {
-           Logger.log("Warning: GitHub response did not contain a usable image URL.");
-           return jsonResponse.content?.html_url || ''; // Fallback to html_url or empty
-       }
-      Logger.log(`Image uploaded successfully. URL: ${imageUrl}`);
-      return imageUrl;
+      // The image was successfully uploaded to GitHub.
+      // Now, instead of using GitHub's URL, we will construct our own custom URL.
+      
+      // The 'githubPath' variable (e.g., "school_images/My_School/12345_photo.jpg")
+      // is already defined earlier in this function.
+
+      // --- NEW: Custom URL Generation ---
+      // Define your custom domain. This should point to your GitHub raw content.
+      const customDomain = "https://image.digitalerp.shop";
+
+      // Construct the final URL by combining the custom domain and the GitHub path.
+      const finalUrl = `${customDomain}/${githubPath}`;
+      
+      Logger.log(`Custom URL generated: ${finalUrl}`);
+      return finalUrl; // Return the custom-built URL
     } else {
       throw new Error(`GitHub API Error (${responseCode}): ${responseBody}`);
     }
