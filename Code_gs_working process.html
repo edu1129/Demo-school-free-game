@@ -70,7 +70,81 @@
                     <p>यह पूरी प्रक्रिया <strong>Code.gs</strong> फ़ाइल के अंदर <code>uploadImageToGitHub</code> नामक फ़ंक्शन द्वारा नियंत्रित की जाती है।</p>
                 </div>
 
-                <h5>प्रक्रिया के चरण (Step-by-Step Process)</h5>
+                <h5 class="mt-4">वह कोड जो यह लॉजिक परफॉर्म करता है (The Code)</h5>
+                <p>नीचे वह वास्तविक Google Apps Script कोड है जो इमेज को GitHub पर अपलोड करता है और URL बनाता है।</p>
+                <pre style="background-color: #1e293b; color: #f8fafc; padding: 1rem; border-radius: 0.5rem; font-size: 0.85rem; white-space: pre-wrap; word-break: break-all;"><code>function uploadImageToGitHub(imageDataBase64, fileName, schoolName) {
+  let token;
+  try {
+    token = getGitHubToken();
+  } catch (e) {
+     // If token is missing, log it and return an empty URL
+     Logger.log("GitHub Token missing, cannot upload image. " + e.message);
+     return '';
+  }
+  const repoInfo = getGitHubRepoInfo();
+  const sanitizedSchoolName = schoolName.replace(/[^a-zA-Z0-9]/g, '_');
+  const uniqueFileName = `${Date.now()}_${fileName}`;
+  const githubPath = `${repoInfo.path}/${sanitizedSchoolName}/${uniqueFileName}`;
+
+  const apiUrl = `https://api.github.com/repos/${repoInfo.user}/${repoInfo.repo}/contents/${githubPath}`;
+
+  // Ensure base64 prefix is removed (e.g., "data:image/jpeg;base64,")
+  const base64Content = imageDataBase64.includes(',') ? imageDataBase64.split(',')[1] : imageDataBase64;
+
+  const payload = JSON.stringify({
+    message: `Upload image: ${uniqueFileName}`,
+    content: base64Content,
+    branch: 'main' // Your default branch name
+  });
+
+  const options = {
+    method: 'put',
+    headers: {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    payload: payload,
+    muteHttpExceptions: true // Prevents script from stopping on HTTP errors
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(apiUrl, options);
+    const responseCode = response.getResponseCode();
+    const responseBody = response.getContentText();
+
+    if (responseCode === 201 || responseCode === 200) { // 201 = Created, 200 = Updated
+      const jsonResponse = JSON.parse(responseBody);
+      // Prefer download_url for direct image access.
+      // If not available, use html_url and convert it to a raw URL.
+      const imageUrl = jsonResponse.content?.download_url || jsonResponse.content?.html_url?.replace('/blob/', '/raw/');
+      
+      if (!imageUrl) {
+           Logger.log("Warning: GitHub response did not contain a usable image URL.");
+           return jsonResponse.content?.html_url || ''; // Fallback or empty
+      }
+      return imageUrl;
+    } else {
+      // If upload fails, log the error and continue without an image
+      throw new Error(`GitHub API Error (${responseCode}): ${responseBody}`);
+    }
+  } catch (error) {
+    Logger.log(`Error uploading image to GitHub: ${error}`);
+    return ''; // Return empty URL on failure
+  }
+}</code></pre>
+
+                <h5 class="mt-4">URL बनाने का लॉजिक और प्रीसेट URL</h5>
+                <p>आपके प्रश्न का उत्तर कि URL कैसे बनता है और "प्रीसेट URL" क्या है, ऊपर दिए गए कोड में है:</p>
+                <ul>
+                    <li><strong>कोई फिक्स्ड प्रीसेट URL नहीं है:</strong> स्क्रिप्ट पहले से कोई URL तय नहीं करती है।</li>
+                    <li><strong>GitHub URL देता है:</strong> जब इमेज सफलतापूर्वक GitHub पर अपलोड हो जाती है, तो GitHub खुद एक URL वापस भेजता है। यह URL आमतौर पर <code>download_url</code> होता है।</li>
+                    <li><strong>URL का फॉर्मेट:</strong> यह <code>download_url</code> ही अंतिम URL होता है जिसे स्प्रेडशीट में सेव किया जाता है। इसका फॉर्मेट कुछ इस तरह होता है: <br><code>https://raw.githubusercontent.com/आपका-यूजरनेम/आपकी-रिपॉजिटरी/main/school_images/स्कूल-का-नाम/इमेज-फाइल.jpg</code></li>
+                    <li><strong>बैकअप लॉजिक:</strong> अगर किसी कारण से GitHub <code>download_url</code> नहीं देता है, तो स्क्रिप्ट एक और URL (<code>html_url</code>) को बदलने की कोशिश करती है ताकि वह डायरेक्ट इमेज लिंक बन जाए।</li>
+                </ul>
+                <p>तो, संक्षेप में, URL बनाने का लॉजिक GitHub द्वारा प्रदान किए गए डायनामिक URL को प्राप्त करना और उसे सीधे उपयोग करना है।</p>
+
+                <h5 class="mt-4">प्रक्रिया के चरण (Step-by-Step Process)</h5>
                 <p>यहाँ बताया गया है कि यह कैसे काम करता है:</p>
                 
                 <ol class="list-group list-group-numbered">
