@@ -10,7 +10,6 @@
         body {
             background-color: #f0f4f9;
             font-family: 'Poppins', sans-serif, system-ui;
-            padding: 2rem;
         }
         .container {
             max-width: 960px;
@@ -26,6 +25,8 @@
             color: white;
             font-weight: 600;
             font-size: 1.2rem;
+            border-top-left-radius: 0.8rem;
+            border-top-right-radius: 0.8rem;
         }
         .card-body h5 {
             color: #4f46e5;
@@ -34,12 +35,16 @@
             padding-bottom: 0.5rem;
             margin-top: 1rem;
         }
-        code {
-            background-color: #e2e8f0;
-            padding: 0.2em 0.4em;
-            border-radius: 3px;
-            font-family: monospace;
-            color: #1e293b;
+        code.language-javascript {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            display: block;
         }
         .list-group-item {
             border-color: #e2e8f0;
@@ -49,10 +54,15 @@
             border-color: #c7d2fe;
             color: #4338ca;
         }
+        .alert-warning {
+            background-color: #fffbeb;
+            border-color: #fde68a;
+            color: #b45309;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="text-center">इमेज अपलोड और URL जनरेशन</h1>
             <a href="/index.html" class="btn btn-outline-secondary">डैशबोर्ड पर वापस जाएं</a>
@@ -60,130 +70,77 @@
 
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-image me-2"></i> इमेज URL कैसे बनता है?
+                <i class="fas fa-cogs me-2"></i> मौजूदा इमेज URL प्रक्रिया
             </div>
             <div class="card-body">
-                <p>जब कोई उपयोगकर्ता (जैसे प्रिंसिपल या छात्र) कोई फोटो अपलोड करता है, तो वह फोटो सीधे Google स्प्रेडशीट में सेव नहीं होती है। इसके बजाय, फोटो को एक बाहरी सर्विस (इस मामले में, <strong>GitHub</strong>) पर अपलोड किया जाता है, और केवल उस फोटो का लिंक (URL) स्प्रेडशीट में सेव होता है।</p>
+                <p>जब कोई उपयोगकर्ता फोटो अपलोड करता है, तो वह फोटो सीधे Google स्प्रेडशीट में सेव नहीं होती है। इसके बजाय, फोटो को <strong>GitHub</strong> पर अपलोड किया जाता है, और केवल उस फोटो का लिंक (URL) स्प्रेडशीट में सेव होता है।</p>
                 
                 <div class="alert alert-info" role="alert">
                     <h4 class="alert-heading"><i class="fas fa-file-code me-2"></i>संबंधित फ़ाइल और फ़ंक्शन</h4>
                     <p>यह पूरी प्रक्रिया <strong>Code.gs</strong> फ़ाइल के अंदर <code>uploadImageToGitHub</code> नामक फ़ंक्शन द्वारा नियंत्रित की जाती है।</p>
                 </div>
 
-                <h5 class="mt-4">वह कोड जो यह लॉजिक परफॉर्म करता है (The Code)</h5>
-                <p>नीचे वह वास्तविक Google Apps Script कोड है जो इमेज को GitHub पर अपलोड करता है और URL बनाता है।</p>
-                <pre style="background-color: #1e293b; color: #f8fafc; padding: 1rem; border-radius: 0.5rem; font-size: 0.85rem; white-space: pre-wrap; word-break: break-all;"><code>function uploadImageToGitHub(imageDataBase64, fileName, schoolName) {
-  let token;
-  try {
-    token = getGitHubToken();
-  } catch (e) {
-     // If token is missing, log it and return an empty URL
-     Logger.log("GitHub Token missing, cannot upload image. " + e.message);
-     return '';
-  }
-  const repoInfo = getGitHubRepoInfo();
-  const sanitizedSchoolName = schoolName.replace(/[^a-zA-Z0-9]/g, '_');
-  const uniqueFileName = `${Date.now()}_${fileName}`;
-  const githubPath = `${repoInfo.path}/${sanitizedSchoolName}/${uniqueFileName}`;
-
-  const apiUrl = `https://api.github.com/repos/${repoInfo.user}/${repoInfo.repo}/contents/${githubPath}`;
-
-  // Ensure base64 prefix is removed (e.g., "data:image/jpeg;base64,")
-  const base64Content = imageDataBase64.includes(',') ? imageDataBase64.split(',')[1] : imageDataBase64;
-
-  const payload = JSON.stringify({
-    message: `Upload image: ${uniqueFileName}`,
-    content: base64Content,
-    branch: 'main' // Your default branch name
-  });
-
-  const options = {
-    method: 'put',
-    headers: {
-      'Authorization': `token ${token}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
-    },
-    payload: payload,
-    muteHttpExceptions: true // Prevents script from stopping on HTTP errors
-  };
-
-  try {
-    const response = UrlFetchApp.fetch(apiUrl, options);
-    const responseCode = response.getResponseCode();
-    const responseBody = response.getContentText();
-
-    if (responseCode === 201 || responseCode === 200) { // 201 = Created, 200 = Updated
-      const jsonResponse = JSON.parse(responseBody);
-      // Prefer download_url for direct image access.
-      // If not available, use html_url and convert it to a raw URL.
-      const imageUrl = jsonResponse.content?.download_url || jsonResponse.content?.html_url?.replace('/blob/', '/raw/');
-      
-      if (!imageUrl) {
-           Logger.log("Warning: GitHub response did not contain a usable image URL.");
-           return jsonResponse.content?.html_url || ''; // Fallback or empty
-      }
-      return imageUrl;
-    } else {
-      // If upload fails, log the error and continue without an image
-      throw new Error(`GitHub API Error (${responseCode}): ${responseBody}`);
-    }
-  } catch (error) {
-    Logger.log(`Error uploading image to GitHub: ${error}`);
-    return ''; // Return empty URL on failure
-  }
-}</code></pre>
-
-                <h5 class="mt-4">URL बनाने का लॉजिक और प्रीसेट URL</h5>
-                <p>आपके प्रश्न का उत्तर कि URL कैसे बनता है और "प्रीसेट URL" क्या है, ऊपर दिए गए कोड में है:</p>
-                <ul>
-                    <li><strong>कोई फिक्स्ड प्रीसेट URL नहीं है:</strong> स्क्रिप्ट पहले से कोई URL तय नहीं करती है।</li>
-                    <li><strong>GitHub URL देता है:</strong> जब इमेज सफलतापूर्वक GitHub पर अपलोड हो जाती है, तो GitHub खुद एक URL वापस भेजता है। यह URL आमतौर पर <code>download_url</code> होता है।</li>
-                    <li><strong>URL का फॉर्मेट:</strong> यह <code>download_url</code> ही अंतिम URL होता है जिसे स्प्रेडशीट में सेव किया जाता है। इसका फॉर्मेट कुछ इस तरह होता है: <br><code>https://raw.githubusercontent.com/आपका-यूजरनेम/आपकी-रिपॉजिटरी/main/school_images/स्कूल-का-नाम/इमेज-फाइल.jpg</code></li>
-                    <li><strong>बैकअप लॉजिक:</strong> अगर किसी कारण से GitHub <code>download_url</code> नहीं देता है, तो स्क्रिप्ट एक और URL (<code>html_url</code>) को बदलने की कोशिश करती है ताकि वह डायरेक्ट इमेज लिंक बन जाए।</li>
-                </ul>
-                <p>तो, संक्षेप में, URL बनाने का लॉजिक GitHub द्वारा प्रदान किए गए डायनामिक URL को प्राप्त करना और उसे सीधे उपयोग करना है।</p>
-
                 <h5 class="mt-4">प्रक्रिया के चरण (Step-by-Step Process)</h5>
-                <p>यहाँ बताया गया है कि यह कैसे काम करता है:</p>
-                
                 <ol class="list-group list-group-numbered">
-                    <li class="list-group-item">
-                        <strong>GitHub से कनेक्शन:</strong>
-                        सबसे पहले, स्क्रिप्ट Apps Script प्रोजेक्ट की सेटिंग्स में सेव किए गए क्रेडेंशियल्स (जैसे <code>GITHUB_API_TOKEN</code>, <code>GITHUB_USER</code>) का उपयोग करके आपके GitHub खाते से जुड़ती है।
-                    </li>
-                    <li class="list-group-item">
-                        <strong>यूनिक फ़ाइल पाथ बनाना:</strong>
-                        हर इमेज के लिए एक यूनिक पाथ बनाया जाता है ताकि कोई भी दो इमेज एक-दूसरे को ओवरराइट न करें। यह पाथ इस तरह दिखता है:
-                        <code>/school_images/School_Name/1678886400000_student_photo.jpg</code>
-                        <ul>
-                            <li><code>school_images</code>: यह रिपॉजिटरी के अंदर का मुख्य फ़ोल्डर है।</li>
-                            <li><code>School_Name</code>: स्कूल के नाम से एक सब-फ़ोल्डर बनाया जाता है।</li>
-                            <li><code>1678886400000_student_photo.jpg</code>: फ़ाइल के नाम के आगे एक टाइमस्टैम्प (समय) जोड़ दिया जाता है ताकि यह हमेशा यूनिक रहे।</li>
-                        </ul>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>GitHub API पर अपलोड:</strong>
-                        स्क्रिप्ट इमेज डेटा को GitHub के API (एक तरह का गेटवे) पर भेजती है, जो इमेज को आपके द्वारा निर्दिष्ट पाथ पर सेव कर देता है।
-                    </li>
-                    <li class="list-group-item">
-                        <strong>URL प्राप्त करना:</strong>
-                        अगर अपलोड सफल होता है, तो GitHub एक JSON रिस्पॉन्स भेजता है जिसमें इमेज के बारे में बहुत सारी जानकारी होती है। स्क्रिप्ट इस रिस्पॉन्स में से <code>download_url</code> को ढूंढती है। यह एक डायरेक्ट लिंक होता है जिसे ब्राउज़र में खोलने पर सीधे इमेज दिखाई देती है।
-                    </li>
-                    <li class="list-group-item">
-                        <strong>URL को बदलना (यदि आवश्यक हो):</strong>
-                        कभी-कभी GitHub एक <code>html_url</code> देता है जो इमेज पेज को खोलता है, न कि सीधे इमेज को। स्क्रिप्ट इतनी स्मार्ट है कि वह इस URL को डायरेक्ट इमेज URL में बदल देती है (<code>/blob/</code> को <code>/raw/</code> से बदलकर)।
-                    </li>
-                    <li class="list-group-item">
-                        <strong>स्प्रेडशीट में सेव करना:</strong>
-                        अंत में, यह प्राप्त किया गया डायरेक्ट इमेज URL (जैसे <code>https://raw.githubusercontent.com/.../image.jpg</code>) स्प्रेडशीट के संबंधित कॉलम (जैसे <code>PhotoURL</code> या <code>School Image URL</code>) में सेव कर दिया जाता है।
-                    </li>
+                    <li class="list-group-item"><strong>GitHub से कनेक्शन:</strong> स्क्रिप्ट आपके GitHub खाते से जुड़ती है।</li>
+                    <li class="list-group-item"><strong>यूनिक फ़ाइल पाथ बनाना:</strong> हर इमेज के लिए एक यूनिक पाथ बनाया जाता है (जैसे: <code>/school_images/School_Name/timestamp_filename.jpg</code>)।</li>
+                    <li class="list-group-item"><strong>GitHub API पर अपलोड:</strong> स्क्रिप्ट इमेज को GitHub पर भेजती है।</li>
+                    <li class="list-group-item"><strong>URL प्राप्त करना:</strong> सफल अपलोड पर, GitHub एक डायरेक्ट डाउनलोड URL (<code>download_url</code>) देता है।</li>
+                    <li class="list-group-item"><strong>स्प्रेडशीट में सेव करना:</strong> यही URL स्प्रेडशीट के <code>PhotoURL</code> कॉलम में सेव हो जाता है।</li>
                 </ol>
-
-                <h5 class="mt-4">निष्कर्ष</h5>
-                <p>इस प्रक्रिया से यह सुनिश्चित होता है कि स्प्रेडशीट हल्की और तेज़ बनी रहे, क्योंकि उसमें भारी इमेज फ़ाइलों के बजाय केवल टेक्स्ट-आधारित URL ही स्टोर होते हैं। सभी इमेज सुरक्षित रूप से GitHub पर संग्रहीत होती हैं।</p>
             </div>
         </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-link me-2"></i> कस्टम डोमेन URL कैसे सेट करें? (जैसे: https://image.digitalerp.shop/...)
+            </div>
+            <div class="card-body">
+                <p>आपका वांछित URL (<code>https://image.digitalerp.shop/...</code>) प्राप्त करने के लिए, आपको केवल कोड बदलने से ज़्यादा कुछ करना होगा। यह एक दो-चरणीय प्रक्रिया है:</p>
+
+                <h5>चरण 1: अपना डोमेन और होस्टिंग सेट करें</h5>
+                <p>सबसे पहले, आपको यह सुनिश्चित करना होगा कि आपका डोमेन <code>image.digitalerp.shop</code> उस स्थान पर इंगित (point) कर रहा है जहाँ आपकी इमेज संग्रहीत हैं।</p>
+                <ul>
+                    <li><strong>विकल्प A (GitHub Pages):</strong> आप अपनी GitHub रिपॉजिटरी के लिए GitHub Pages को सक्रिय कर सकते हैं और उस पर अपना कस्टम डोमेन (<code>image.digitalerp.shop</code>) सेट कर सकते हैं।</li>
+                    <li><strong>विकल्प B (अन्य होस्टिंग):</strong> आप एक अलग इमेज होस्टिंग सेवा (जैसे AWS S3, Cloudinary, या कोई अन्य वेब होस्टिंग) का उपयोग कर सकते हैं और अपने डोमेन को वहां इंगित कर सकते हैं।</li>
+                </ul>
+                <div class="alert alert-warning">यह एक एडवांस सेटअप है जिसके लिए डोमेन और DNS सेटिंग्स के ज्ञान की आवश्यकता होती है।</div>
+
+                <h5>चरण 2: Code.gs में बदलाव करें</h5>
+                <p>एक बार जब आपका डोमेन सही ढंग से सेट हो जाए, तो आपको <code>Code.gs</code> फ़ाइल में <code>uploadImageToGitHub</code> फ़ंक्शन को संशोधित करना होगा। आपको GitHub से मिले URL को अनदेखा करना होगा और अपना खुद का URL बनाना होगा।</p>
+                
+                <p><strong>बदलाव का क्षेत्र:</strong> <code>uploadImageToGitHub</code> फ़ंक्शन के अंत में।</p>
+
+                <h6 class="mt-3">कोड का उदाहरण:</h6>
+                <pre><code class="language-javascript">// ... function के अंदर, सफल अपलोड के बाद ...
+
+    if (responseCode === 201 || responseCode === 200) {
+      const jsonResponse = JSON.parse(responseBody);
+      const githubUrl = jsonResponse.content?.download_url; // GitHub का URL
+
+      // --- यहाँ बदलाव करें --- 
+
+      // पुराना कोड जो GitHub का URL लौटाता है:
+      // return githubUrl;
+
+      // नया कोड जो आपका कस्टम URL बनाएगा:
+      const customDomain = "https://image.digitalerp.shop";
+      // githubPath वही वेरिएबल है जो फ़ंक्शन में पहले से बना है
+      const finalUrl = `${customDomain}/${githubPath}`;
+      
+      Logger.log(`Custom URL created: ${finalUrl}`);
+      return finalUrl; // अपना बनाया हुआ URL लौटाएं
+
+    } else {
+      // ... बाकी कोड वैसा ही रहेगा ...
+    }
+// ...</code></pre>
+
+                <h5 class="mt-4">निष्कर्ष</h5>
+                <p>संक्षेप में, आपको पहले अपने कस्टम डोमेन को अपनी इमेज स्टोरेज से जोड़ना होगा और फिर <code>Code.gs</code> में कोड को संशोधित करना होगा ताकि वह GitHub द्वारा दिए गए URL के बजाय आपके कस्टम डोमेन का उपयोग करके URL बनाए।</p>
+            </div>
+        </div>
+
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
