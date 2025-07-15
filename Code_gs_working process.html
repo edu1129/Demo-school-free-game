@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>इमेज URL जनरेशन प्रक्रिया</title>
+    <title>स्टाफ इमेज URL समस्या का विश्लेषण</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
@@ -21,7 +21,7 @@
             margin-bottom: 1.5rem;
         }
         .card-header {
-            background-color: #1e293b;
+            background-color: #dc3545;
             color: white;
             font-weight: 600;
             font-size: 1.2rem;
@@ -49,90 +49,85 @@
         .list-group-item {
             border-color: #e2e8f0;
         }
-        .alert-info {
-            background-color: #eef2ff;
-            border-color: #c7d2fe;
-            color: #4338ca;
+        .alert-danger {
+            background-color: #f8d7da;
+            border-color: #f5c2c7;
+            color: #842029;
         }
-        .alert-warning {
-            background-color: #fffbeb;
-            border-color: #fde68a;
-            color: #b45309;
+        .alert-success {
+            background-color: #d1e7dd;
+            border-color: #badbcc;
+            color: #0f5132;
         }
     </style>
 </head>
 <body>
     <div class="container py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="text-center">इमेज अपलोड और URL जनरेशन</h1>
+            <h1 class="text-danger">स्टाफ इमेज URL समस्या</h1>
             <a href="/index.html" class="btn btn-outline-secondary">डैशबोर्ड पर वापस जाएं</a>
         </div>
 
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-cogs me-2"></i> मौजूदा इमेज URL प्रक्रिया
+                <i class="fas fa-exclamation-triangle me-2"></i> समस्या: स्टाफ की फोटो का URL स्प्रेडशीट में सेव क्यों नहीं हो रहा है?
             </div>
             <div class="card-body">
-                <p>जब कोई उपयोगकर्ता फोटो अपलोड करता है, तो वह फोटो सीधे Google स्प्रेडशीट में सेव नहीं होती है। इसके बजाय, फोटो को <strong>GitHub</strong> पर अपलोड किया जाता है, और केवल उस फोटो का लिंक (URL) स्प्रेडशीट में सेव होता है।</p>
+                <p>आपके विश्लेषण के अनुरोध के अनुसार, <strong>Code.gs</strong> फ़ाइल की जांच की गई है। समस्या कोड में किसी बड़ी खराबी के कारण नहीं है, बल्कि यह संभवतः आपकी Google स्प्रेडशीट की सेटिंग से संबंधित है।</p>
                 
-                <div class="alert alert-info" role="alert">
-                    <h4 class="alert-heading"><i class="fas fa-file-code me-2"></i>संबंधित फ़ाइल और फ़ंक्शन</h4>
-                    <p>यह पूरी प्रक्रिया <strong>Code.gs</strong> फ़ाइल के अंदर <code>uploadImageToGitHub</code> नामक फ़ंक्शन द्वारा नियंत्रित की जाती है।</p>
+                <h5 class="mt-4">मुख्य कारण (The Main Reason)</h5>
+                <div class="alert alert-danger" role="alert">
+                    <h4 class="alert-heading"><i class="fas fa-columns me-2"></i>कॉलम गायब है!</h4>
+                    <p>सबसे संभावित कारण यह है कि आपकी <strong>'Staffs'</strong> नामक शीट में <strong>'PhotoURL'</strong> नाम का कॉलम हेडर (Column Header) मौजूद नहीं है।</p>
                 </div>
 
-                <h5 class="mt-4">प्रक्रिया के चरण (Step-by-Step Process)</h5>
+                <h5 class="mt-4">कोड कैसे काम करता है (How the Code Works)</h5>
+                <p><code>Code.gs</code> में <code>addStaff</code> फ़ंक्शन इस तरह से काम करता है:</p>
                 <ol class="list-group list-group-numbered">
-                    <li class="list-group-item"><strong>GitHub से कनेक्शन:</strong> स्क्रिप्ट आपके GitHub खाते से जुड़ती है।</li>
-                    <li class="list-group-item"><strong>यूनिक फ़ाइल पाथ बनाना:</strong> हर इमेज के लिए एक यूनिक पाथ बनाया जाता है (जैसे: <code>/school_images/School_Name/timestamp_filename.jpg</code>)।</li>
-                    <li class="list-group-item"><strong>GitHub API पर अपलोड:</strong> स्क्रिप्ट इमेज को GitHub पर भेजती है।</li>
-                    <li class="list-group-item"><strong>URL प्राप्त करना:</strong> सफल अपलोड पर, GitHub एक डायरेक्ट डाउनलोड URL (<code>download_url</code>) देता है।</li>
-                    <li class="list-group-item"><strong>स्प्रेडशीट में सेव करना:</strong> यही URL स्प्रेडशीट के <code>PhotoURL</code> कॉलम में सेव हो जाता है।</li>
+                    <li class="list-group-item">जब आप एक नया स्टाफ सदस्य जोड़ते हैं, तो स्क्रिप्ट सबसे पहले 'Staffs' शीट की पहली पंक्ति (हेडर) को पढ़ती है।</li>
+                    <li class="list-group-item">यह उन हेडर्स की एक सूची बनाती है (जैसे 'StaffID', 'Name', 'Mobile', आदि)।</li>
+                    <li class="list-group-item">फिर, यह एक नई पंक्ति बनाने के लिए इस सूची का उपयोग करती है। यह विशेष रूप से <strong>'PhotoURL'</strong> नामक हेडर की तलाश करती है।</li>
+                    <li class="list-group-item">यदि उसे 'PhotoURL' हेडर मिलता है, तो वह उस कॉलम में इमेज का लिंक डाल देती है।</li>
+                    <li class="list-group-item"><strong>यदि उसे 'PhotoURL' हेडर नहीं मिलता है, तो वह इमेज लिंक को कहीं भी नहीं डालती है और वह सेल खाली रह जाता है।</strong></li>
                 </ol>
+                
+                <p class="mt-3">नीचे दिए गए कोड स्निपेट में देखें, यह <code>case 'PhotoURL': return imageUrl;</code> लाइन तभी काम करती है जब हेडर का नाम 'PhotoURL' हो।</p>
+                <pre><code class="language-javascript">// Inside addStaff function in Code.gs
+const headers = staffSheet.getRange(1, 1, 1, staffSheet.getLastColumn()).getValues()[0];
+const newRow = headers.map(header => {
+    switch (header) {
+        // ... other cases
+        case 'PhotoURL': return imageUrl; // This line needs the 'PhotoURL' header to work
+        // ... other cases
+        default: return '';
+    }
+});
+staffSheet.appendRow(newRow);</code></pre>
             </div>
         </div>
 
         <div class="card">
             <div class="card-header bg-success text-white">
-                <i class="fas fa-link me-2"></i> नई कस्टम URL प्रक्रिया (New Custom URL Process)
+                <i class="fas fa-check-circle me-2"></i> समस्या का समाधान (The Solution)
             </div>
             <div class="card-body">
-                <p>आपके अनुरोध के अनुसार, <code>Code.gs</code> को अब एक कस्टम इमेज URL बनाने के लिए संशोधित कर दिया गया है। अब GitHub द्वारा दिया गया URL उपयोग नहीं किया जाएगा।</p>
-
-                <h5>नई प्रक्रिया कैसे काम करती है:</h5>
-                <ol>
-                    <li>इमेज हमेशा की तरह आपके GitHub रिपॉजिटरी में अपलोड होती है।</li>
-                    <li>अपलोड सफल होने के बाद, स्क्रिप्ट GitHub से मिले URL को अनदेखा कर देती है।</li>
-                    <li>इसके बजाय, यह <code>"https://image.digitalerp.shop"</code> डोमेन का उपयोग करके एक नया URL बनाती है।</li>
-                    <li>यह नया URL (जैसे: <code>https://image.digitalerp.shop/school_images/School_Name/image.jpg</code>) स्प्रेडशीट में सहेजा जाता है।</li>
-                </ol>
-
-                <div class="alert alert-warning" role="alert">
-                    <h4 class="alert-heading">महत्वपूर्ण सेटअप!</h4>
-                    <p>यह URL तभी काम करेगा जब आप अपने डोमेन <code>image.digitalerp.shop</code> को सही ढंग से कॉन्फ़िगर करेंगे ताकि वह आपकी GitHub रिपॉजिटरी की रॉ फाइलों को दिखाए। इसके लिए आपको अपने डोमेन प्रोवाइडर पर CNAME या प्रॉक्सी सेटअप करना होगा।</p>
+                <p>इस समस्या को ठीक करना बहुत आसान है:</p>
+                <div class="alert alert-success">
+                    <ol>
+                        <li>अपने स्कूल की Google स्प्रेडशीट खोलें।</li>
+                        <li>नीचे टैब से <strong>'Staffs'</strong> शीट पर जाएं।</li>
+                        <li>पहली पंक्ति (Row 1) को ध्यान से देखें, जिसमें कॉलम के नाम हैं।</li>
+                        <li>जांचें कि क्या <strong>PhotoURL</strong> नाम का कोई कॉलम है। नाम बिल्कुल यही होना चाहिए, कोई स्पेलिंग मिस्टेक या स्पेस नहीं।</li>
+                        <li>यदि यह कॉलम नहीं है, तो बस किसी भी खाली कॉलम के हेडर में <strong>PhotoURL</strong> लिख दें।</li>
+                    </ol>
                 </div>
-
-                <h5 class="mt-4">संशोधित कोड (Modified Code in <code>Code.gs</code>)</h5>
-                <p><code>uploadImageToGitHub</code> फ़ंक्शन में अब यह लॉजिक है:</p>
-                <pre><code class="language-javascript">// ... function के अंदर, सफल अपलोड के बाद ...
-
-    if (responseCode === 201 || responseCode === 200) {
-      // --- NEW: Custom URL Generation ---
-      const customDomain = "https://image.digitalerp.shop";
-
-      // 'githubPath' वेरिएबल में इमेज का पाथ पहले से मौजूद है
-      // (e.g., "school_images/My_School/12345_photo.jpg")
-      const finalUrl = `${customDomain}/${githubPath}`;
-      
-      Logger.log(`Custom URL generated: ${finalUrl}`);
-      return finalUrl; // कस्टम URL लौटाया जाता है
-
-    } else {
-      // ... बाकी कोड वैसा ही रहेगा ...
-    }
-// ...</code></pre>
-
-                <h5 class="mt-4">निष्कर्ष</h5>
-                <p>कोड अब आपके कस्टम डोमेन का उपयोग करके URL बनाने के लिए तैयार है। आपको बस यह सुनिश्चित करना है कि आपका डोमेन सही जगह पर इंगित कर रहा है।</p>
+                <p>एक बार जब आप यह कॉलम जोड़ देंगे, तो नए स्टाफ सदस्यों को जोड़ते समय उनकी फोटो का URL अपने आप सही जगह पर सेव होने लगेगा।</p>
+                
+                <h5 class="mt-4">अन्य संभावित कारण (Other Possible Reasons)</h5>
+                <ul>
+                    <li><strong>GitHub टोकन की समस्या:</strong> हो सकता है कि इमेज GitHub पर अपलोड ही न हो रही हो। इसकी जांच के लिए, Apps Script एडिटर में <strong>View > Executions</strong> पर जाएं और देखें कि क्या कोई लाल रंग की त्रुटि (error) है।</li>
+                    <li><strong>फ्रंटएंड फॉर्म:</strong> यह संभव है कि HTML फॉर्म से इमेज ठीक से भेजी नहीं जा रही है, लेकिन ऊपर बताया गया कारण सबसे आम है।</li>
+                </ul>
             </div>
         </div>
 
